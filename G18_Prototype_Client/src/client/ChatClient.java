@@ -23,7 +23,7 @@ public class ChatClient extends AbstractClient
   public static Order order = null;
   public static boolean awaitResponse = false;
 
-  //Constructors ****************************************************
+  //Constructors 
   
   public ChatClient(String host, int port, ChatIF clientUI) 
     throws IOException 
@@ -32,7 +32,7 @@ public class ChatClient extends AbstractClient
     this.clientUI = clientUI;
   }
 
-  //Instance methods ************************************************
+  //Instance methods 
     
   /**
    * This method handles all data that comes in from the server.
