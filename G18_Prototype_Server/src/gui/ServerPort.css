@@ -1,0 +1,27 @@
+/* Sets the global background color for the server window */
+.root {
+    -fx-background-color: #ececec;
+}
+
+/* Styles the 'Start' button with a green success theme */
+#btnDone {
+    -fx-background-color: #4CAF50; 
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-padding: 5 15 5 15;
+}
+
+/* Styles the 'Exit' button with a red alert theme */
+#btnExit {
+    -fx-background-color: #f44336; 
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-padding: 5 15 5 15;
+}
+
+/* Uses a monospaced font for the log area to ensure readability */
+.text-area {
+    -fx-font-family: "Consolas", "Monospaced";
+}
