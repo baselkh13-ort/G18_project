@@ -1,0 +1,66 @@
+/* UserMenu.css */
+
+.root {
+    -fx-background-color: #f0f4f7; /* Light grey-blue background */
+}
+
+/* --- Main Menu Buttons Design (Blue) --- */
+/* Changed from .button to .menu-button to match the FXML */
+.menu-button {
+    -fx-background-color: #2196F3; /* Blue */
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+    /* Drop shadow effect for depth */
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);
+}
+
+#lblTitle {
+    -fx-font-size: 24px;      
+    -fx-font-weight: bold;    
+    -fx-text-fill: #5e5e5e;   
+    -fx-font-family: "Segoe UI", sans-serif;
+}
+
+/* Hover Effect: Darker blue + Slight Zoom */
+.menu-button:hover {
+    -fx-background-color: #1976D2; 
+    -fx-scale-x: 1.02; /* 2% Zoom in */
+    -fx-scale-y: 1.02;
+}
+
+/* Pressed Effect: Deep blue + Reduced Shadow */
+.menu-button:pressed {
+    -fx-background-color: #0d47a1;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 2, 0, 0, 1);
+}
+
+/* General Label Styling */
+.label {
+    -fx-text-fill: #333333;
+    -fx-font-family: "Segoe UI", sans-serif;
+}
+
+/* Special Design for Exit Button (Red)*/
+.exit-button {
+    -fx-background-color: #f44336; /* Red */
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);
+}
+
+.exit-button:hover {
+    -fx-background-color: #d32f2f; /* Darker red */
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+.exit-button:pressed {
+    -fx-background-color: #b71c1c;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 2, 0, 0, 1);
+}

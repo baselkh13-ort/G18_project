@@ -1,0 +1,77 @@
+/* OrderList.css */
+
+/* General background for the root container */
+.root {
+    -fx-background-color: #f4f4f4;
+}
+
+/* --- TableView Main Styling --- */
+.table-view {
+    -fx-base: #ffffff;
+    -fx-control-inner-background: #ffffff;
+    -fx-background-color: transparent;
+    -fx-table-cell-border-color: transparent;
+    -fx-table-header-border-color: transparent;
+    -fx-padding: 5;
+}
+
+/* --- Column Headers Styling --- */
+.table-view .column-header-background {
+    -fx-background-color: #336699; /* Blue header background */
+    -fx-background-radius: 5px 5px 0 0; /* Rounded top corners */
+}
+
+.table-view .column-header.label {
+    -fx-text-fill: black;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER;
+}
+
+/* Rows Styling */
+.table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #e0e0e0 transparent; /* Bottom separator line */
+}
+
+/* Alternate Row Colors  */
+.table-row-cell:odd {
+    -fx-background-color: #f9f9f9;
+}
+
+/* Hover effect on rows */
+.table-row-cell:hover {
+    -fx-background-color: #e6f3ff; /* Light blue highlight on mouse over */
+}
+
+/* Selected row color */
+.table-view:focused .table-row-cell:filled:selected, 
+.table-view .table-row-cell:filled:selected {
+    -fx-background-color: #5588cc; /* Darker blue for selection */
+    -fx-text-fill: white;
+}
+
+/* Center text inside all table cells */
+.table-cell {
+    -fx-alignment: CENTER;
+}
+
+/* --- Button Styling (For the Back Button) --- */
+.button {
+    -fx-background-color: #5588cc;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+    -fx-padding: 8 20 8 20;
+}
+
+.button:hover {
+    -fx-background-color: #336699; /* Darker blue on hover */
+}
+
+/* Styling for the main page title */
+#lblTitle {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #336699; /* Matches the table header color */
+}
