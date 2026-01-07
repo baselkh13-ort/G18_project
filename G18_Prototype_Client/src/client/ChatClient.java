@@ -1,5 +1,5 @@
 package client;
-
+import logic.Member;
 import ocsf.client.*;
 import common.ChatIF;
 import logic.Order;
@@ -8,6 +8,8 @@ import logic.BistroMessage; // Import the wrapper class
 
 import java.io.*;
 import java.util.ArrayList;
+
+
 
 /**
  * This class overrides some of the methods defined in the abstract
@@ -18,11 +20,18 @@ public class ChatClient extends AbstractClient
   //Instance variables **********************************************
   
   ChatIF clientUI; 
-  // Initialize the list to prevent NullPointerException
+  // Initialize the lists to prevent NullPointerException
   public static ArrayList<Order> listOfOrders = new ArrayList<>();
   public static Order order = null;
+  
+  public static ArrayList<Member> listOfMembers = new ArrayList<>();
+  public static Member member = null;
+  
   public static boolean awaitResponse = false;
-
+  
+  // If the register successes or not
+  public static Member registeredMember;
+  public static String registerError;
   //Constructors 
   
   public ChatClient(String host, int port, ChatIF clientUI) 
@@ -39,56 +48,71 @@ public class ChatClient extends AbstractClient
    *
    * @param msg The message from the server.
    */
-  public void handleMessageFromServer(Object msg) 
-  {
-      System.out.println("--> handleMessageFromServer");
-      
-      // Release the waiting flag
-      awaitResponse = false;
+  public void handleMessageFromServer(Object msg) {
+	    System.out.println("--> handleMessageFromServer");
 
-      // Safety check
-      if (msg == null) {
-          System.out.println("Received null from server");
-          return;
-      }
+	    if (!(msg instanceof BistroMessage)) {
+	        System.out.println("WARNING: unknown object from server");
+	        awaitResponse = false;
+	        return;
+	    }
 
-      //Handle the wrapper (BistroMessage)
-      if (msg instanceof BistroMessage) {
-          BistroMessage bistroMsg = (BistroMessage) msg;
-          ActionType type = bistroMsg.getType();
-          Object data = bistroMsg.getData();
+	    BistroMessage bm = (BistroMessage) msg;
+	    ActionType type = bm.getType();
+	    Object data = bm.getData();
 
-          System.out.println("Message Type: " + type);
+	    System.out.println("Message Type: " + type);
 
-          // Case A: Received an order list (for View All)
-          if (data instanceof ArrayList) {
-              System.out.println("Got ArrayList inside BistroMessage");
-              listOfOrders = (ArrayList<Order>) data;
-          }
-          
-          // Case B: Received a single order (for Update order)
-          else if (data instanceof Order) {
-              System.out.println("Got Order inside BistroMessage");
-              order = (Order) data;
-          }
-          
-          // --- Case C: Received an error message or text ---
-          else if (data instanceof String) {
-              System.out.println("Got String message: " + data);
-              // If it's an error, reset variables so screens know nothing returned
-              if (data.toString().contains("Error") || data.toString().contains("not found")) {
-                  order = null;
-                  listOfOrders.clear(); // Clear the list
-              }
-          }
-          else if (data == null) {
-              System.out.println("Data inside BistroMessage is NULL!");
-              order = null;
-          }
-      } else {
-    	  System.out.println("WARNING: Received unknown object from server!");
-      }
-  }
+	    switch (type) {
+
+	        case GET_ALL_ORDERS:
+	            listOfOrders = (ArrayList<Order>) data;
+	            System.out.println("Saved Orders list, size=" + (listOfOrders == null ? 0 : listOfOrders.size()));
+	            break;
+
+	        case READ_ORDER:
+	            order = (Order) data;
+	            break;
+
+	        case GET_ALL_MEMBERS:
+	            if (data instanceof ArrayList) {
+	                listOfMembers = (ArrayList<Member>) data;
+	                System.out.println("Saved Members list, size=" + (listOfMembers == null ? 0 : listOfMembers.size()));
+	            } else {
+	                System.out.println("GET_ALL_MEMBERS returned non-list: " + data);
+	                listOfMembers = new ArrayList<>();
+	            }
+	            break;
+
+	        case GET_MEMBER_BY_ID:
+	            member = (Member) data;
+	            break;
+
+	        case REGISTER_MEMBER:
+	        	registeredMember = null;
+	        	registerError = null;
+
+	        	if (data instanceof Member) {
+	        	    registeredMember = (Member) data;
+	        	} 
+	        	else if (data instanceof String && ((String) data).startsWith("ERROR")) {
+	        	    registerError = (String) data;
+	        	}
+
+	            break;
+
+
+	        case UPDATE_MEMBER_CONTACT:
+	            System.out.println("Server says: " + data);
+	            break;
+
+	        default:
+	            System.out.println("Unhandled type: " + type + ", data=" + data);
+	    }
+
+	    awaitResponse = false;
+	}
+
 
   /**
    * This method handles all data coming from the UI            

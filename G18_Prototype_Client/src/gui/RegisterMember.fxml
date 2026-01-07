@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.control.*?>
+
+<AnchorPane prefHeight="350.0" prefWidth="420.0"
+            xmlns="http://javafx.com/javafx/8"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="gui.RegisterMemberController">
+
+    <children>
+        <TextField fx:id="txtUserName" layoutX="140" layoutY="40"  prefWidth="240" promptText="Username"/>
+        <TextField fx:id="txtFullName" layoutX="140" layoutY="80"  prefWidth="240" promptText="Full Name"/>
+        <TextField fx:id="txtPhone"    layoutX="140" layoutY="120" prefWidth="240" promptText="Phone"/>
+        <TextField fx:id="txtEmail"    layoutX="140" layoutY="160" prefWidth="240" promptText="Email"/>
+
+        <Button layoutX="140" layoutY="220" text="Submit" onAction="#clickSubmit" prefWidth="120"/>
+        <Button layoutX="260" layoutY="220" text="Back"   onAction="#clickBack"   prefWidth="120"/>
+
+        <Label fx:id="lblStatus" layoutX="140" layoutY="270" />
+    </children>
+</AnchorPane>

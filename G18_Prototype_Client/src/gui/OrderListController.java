@@ -46,6 +46,7 @@ public class OrderListController implements Initializable {
         colConfirmationCode.setCellValueFactory(new PropertyValueFactory<>("confirmationCode"));        
         colSubscriber.setCellValueFactory(new PropertyValueFactory<>("subscriberID"));
         colDateOfPlacingOrder.setCellValueFactory(new PropertyValueFactory<>("dateOfPlacingOrder"));
+        
     
         // 2. Load data into the table
         // We check if the list is not null to avoid NullPointerException

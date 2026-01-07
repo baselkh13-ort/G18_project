@@ -1,0 +1,10 @@
+# Eclipse / Java
+bin/
+*.class
+
+# JavaFX build output (אם קיים)
+out/
+
+# OS junk
+.DS_Store
+Thumbs.db

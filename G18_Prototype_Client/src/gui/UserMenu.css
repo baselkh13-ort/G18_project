@@ -64,3 +64,28 @@
     -fx-background-color: #b71c1c;
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 2, 0, 0, 1);
 }
+
+.register-text {
+    -fx-text-fill: #555;
+    -fx-font-size: 13px;
+    -fx-font-family: "Segoe UI", sans-serif;
+}
+
+.register-link {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #1a73e8;
+    -fx-font-size: 13px;
+    -fx-font-weight: normal;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+    -fx-effect: none;
+}
+
+.register-link:hover {
+    -fx-underline: true;
+}
+
+.register-link:pressed {
+    -fx-text-fill: #174ea6;
+}

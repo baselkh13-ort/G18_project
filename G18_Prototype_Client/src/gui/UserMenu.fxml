@@ -3,15 +3,26 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
 <AnchorPane prefHeight="400.0" prefWidth="350.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="gui.UserMenuController">
    <children>
+   	  <HBox spacing="5" alignment="CENTER_LEFT" AnchorPane.topAnchor="10.0" AnchorPane.leftAnchor="10.0">
+
+    	<Label text="New here?" styleClass="register-text"/>
+
+    	<Button fx:id="btnRegister" text="Register" onAction="#clickRegister" styleClass="register-link"/>
+    	
+	  </HBox>
+
+   	  
       <Label fx:id="lblTitle" layoutX="115.0" layoutY="35.0" text="Main Menu" />
       
       <VBox alignment="CENTER" layoutX="75.0" layoutY="90.0" spacing="25.0">
          <children>
             <Button fx:id="btnView" mnemonicParsing="false" onAction="#clickViewAll" prefHeight="50.0" prefWidth="200.0" styleClass="menu-button" text="View All Orders" />
+            <Button fx:id="btnViewMembers" mnemonicParsing="false" onAction="#clickViewAllMembers" prefHeight="50.0" prefWidth="200.0" styleClass="menu-button" text="View All Members" />
             <Button fx:id="btnUpdate" mnemonicParsing="false" onAction="#clickUpdate" prefHeight="50.0" prefWidth="200.0" styleClass="menu-button" text="Update Order" />
             <Button fx:id="btnExit" mnemonicParsing="false" onAction="#getExitBtn" prefHeight="50.0" prefWidth="200.0" styleClass="exit-button" text="Exit" />
          </children>

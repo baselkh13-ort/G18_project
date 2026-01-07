@@ -44,6 +44,42 @@ public class UserMenuController {
         primaryStage.setScene(scene);
         primaryStage.show();
     }
+    
+    @FXML
+    public void clickRegister(ActionEvent event) throws Exception {
+        ((Node)event.getSource()).getScene().getWindow().hide();
+
+        Stage stage = new Stage();
+        Parent root = FXMLLoader.load(getClass().getResource("/gui/RegisterMember.fxml"));
+        Scene scene = new Scene(root);
+        stage.setTitle("Register Member");
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    @FXML
+    public void clickViewAllMembers(ActionEvent event) {
+        System.out.println("Selected: View All Members");
+
+        new Thread(() -> {
+            BistroMessage msg = new BistroMessage(ActionType.GET_ALL_MEMBERS, null);
+            ClientUI.chat.accept(msg);
+
+            javafx.application.Platform.runLater(() -> {
+                try {
+                    ((Node) event.getSource()).getScene().getWindow().hide();
+
+                    Stage stage = new Stage();
+                    Parent root = FXMLLoader.load(getClass().getResource("/gui/MemberList.fxml"));
+                    Scene scene = new Scene(root);
+                    stage.setScene(scene);
+                    stage.show();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        }).start();
+    }
 
     /**
      * Button: Update Order

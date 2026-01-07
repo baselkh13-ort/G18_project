@@ -1,5 +1,5 @@
 package server;
-
+import logic.Member;
 import common.ChatIF;
 import ocsf.server.AbstractServer;
 import ocsf.server.ConnectionToClient;
@@ -14,6 +14,7 @@ public class BistroServer extends AbstractServer {
 
     private OrderRepository orderRepo; // Handles database queries
     private final ChatIF ui;           // Interface for GUI logging
+    private MemberRepository memberRepo = new MemberRepository();
 
     // Initializes the server on a specific port and sets up the DB repository.
     public BistroServer(int port, ChatIF ui) {
@@ -72,7 +73,7 @@ public class BistroServer extends AbstractServer {
             log("[Error] Message is NULL!");
             return;
         }
-
+        
         log("[Debug] Message Class Type: " + msg.getClass().getSimpleName());
 
         // Ensure message is of type BistroMessage
@@ -148,7 +149,95 @@ public class BistroServer extends AbstractServer {
                         log("[Error] ID provided is not an Integer!");
                     }
                     break;
+                
+                case GET_ALL_MEMBERS:
+                	log("[Debug] Processing GET_ALL_MEMBERS...");
+                    ArrayList<Member> members = memberRepo.getAllMembers();
+                    log("[Debug] members list = " + (members == null ? "NULL" : ("size=" + members.size())));
+                    responseMsg = new BistroMessage(ActionType.GET_ALL_MEMBERS, members);
+                    break;
 
+                case GET_MEMBER_BY_ID:
+                    Object idObj = request.getData();
+                    if (idObj instanceof String) {
+                        Member m = memberRepo.getMemberById((String) idObj);
+                        responseMsg = new BistroMessage(ActionType.GET_MEMBER_BY_ID, m);
+                    } else {
+                        responseMsg = new BistroMessage(ActionType.GET_MEMBER_BY_ID, "ERROR: Invalid memberId");
+                    }
+                    break;
+
+                case REGISTER_MEMBER: {
+                    log("[Debug] Processing REGISTER_MEMBER...");
+                    
+                    // Taking the data that the client sent
+                    Object mObj = request.getData();
+                    // if its not kind of member it's an error
+                    if (!(mObj instanceof Member)) {
+                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, "ERROR: Invalid data");
+                        break;
+                    }
+                    
+                    Member m = (Member) mObj;
+                    
+                    // Trim to clean spaces
+                    String username = (m.getUserName() == null) ? "" : m.getUserName().trim();
+                    String fullName = (m.getFullName() == null) ? "" : m.getFullName().trim();
+                    String phone = (m.getPhone() == null) ? "" : m.getPhone().trim();
+                    String email = (m.getEmail() == null) ? "" : m.getEmail().trim();
+                    
+                    // If statements
+                    if (username.isEmpty() || fullName.isEmpty()) {
+                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, "ERROR: Username and Full Name are required");
+                        break;
+                    }
+
+                  
+                    if (memberRepo.usernameExists(username)) {
+                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, "ERROR: Username already exists");
+                        break;
+                    }                  
+                    
+
+                    if (!email.isEmpty() && memberRepo.emailExists(email)) {
+                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, "ERROR: Email already exists");
+                        break;
+                    }
+
+                    if (!phone.isEmpty() && memberRepo.phoneExists(phone)) {
+                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, "ERROR: Phone already exists");
+                        break;
+                    }
+                    
+                    // Create unique id's
+                    String memberId = java.util.UUID.randomUUID().toString();
+                    String qrCode   = java.util.UUID.randomUUID().toString();
+                    
+                    // Insert the details to DB
+                    String res = memberRepo.insertMember(memberId, qrCode, username, fullName, m.getPhone(), m.getEmail());
+
+                    if (res != null && !res.toUpperCase().startsWith("ERROR")) {
+                        Member created = new Member(memberId, qrCode, username, fullName, m.getPhone(), m.getEmail());
+                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, created);
+                    } else {
+                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, "ERROR: " + res);
+                    }
+                    break;
+                }
+
+
+                case UPDATE_MEMBER_CONTACT:
+                    // הכי פשוט: שולחים Member (עם memberId + phone/email חדשים)
+                    Object mObj2 = request.getData();
+                    if (mObj2 instanceof Member) {
+                        Member m = (Member) mObj2;
+                        String res = memberRepo.updateContact(m.getMemberId(), m.getPhone(), m.getEmail());
+                        responseMsg = new BistroMessage(ActionType.UPDATE_MEMBER_CONTACT, res);
+                    } else {
+                        responseMsg = new BistroMessage(ActionType.UPDATE_MEMBER_CONTACT, "ERROR: Invalid data");
+                    }
+                    break;
+                    
                 default:
                     log("[Error] Unknown ActionType received: " + type);
                     break;
