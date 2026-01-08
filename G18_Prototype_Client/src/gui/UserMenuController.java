@@ -1,7 +1,10 @@
 package gui;
 
 import java.io.IOException;
+
 import client.ClientUI;
+import common.ActionType;
+import common.BistroMessage;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -9,8 +12,6 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import logic.ActionType;
-import logic.BistroMessage;
 import logic.ScreenMode;
 
 public class UserMenuController {

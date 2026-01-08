@@ -2,6 +2,8 @@ package gui;
 
 import client.ChatClient;
 import client.ClientUI;
+import common.ActionType;
+import common.BistroMessage;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -11,8 +13,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-import logic.ActionType;
-import logic.BistroMessage;
 
 public class InsertOrderNumberController {
 

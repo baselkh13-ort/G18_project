@@ -1,7 +1,11 @@
 package gui;
 
 import java.sql.Date;
+
 import client.ClientUI;
+import common.ActionType;
+import common.BistroMessage;
+import common.Order;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -9,9 +13,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-import logic.ActionType;
-import logic.BistroMessage;
-import logic.Order;
 import logic.ScreenMode;
 
 public class OrderUpdateController {
