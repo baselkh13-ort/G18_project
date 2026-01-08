@@ -1,29 +1,51 @@
 package server;
-import common.ActionType;
-import common.BistroMessage;
-import common.ChatIF;
-import common.Member;
-import common.Order;
+
+import common.*;
+import logic.ReservationLogic;
+import logic.UserManagement;
 import ocsf.server.AbstractServer;
 import ocsf.server.ConnectionToClient;
-import java.util.ArrayList;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.sql.Timestamp;
 
-// client connections and handles database operations via OrderRepository.
+/**
+ * The BistroServer class handles all client-server communications.
+ * It coordinates between the UI, business logic, and database repositories.
+ * * Supported Features:
+ * 1. User Management: Registration, Login, QR Identification (Task 1).
+ * 2. Order Management: Reservations, Availability Checks, Waiting List (Task 2).
+ * 3. Automated Tasks: Background scheduler for reminders and cancellations.
+ */
 public class BistroServer extends AbstractServer {
 
-    private OrderRepository orderRepo; // Handles database queries
-    private final ChatIF ui;           // Interface for GUI logging
-    private MemberRepository memberRepo = new MemberRepository();
+    private OrderRepository orderRepo;
+    private UserRepository userRepo;
+    private UserManagement userLogic;
+    private ReservationLogic reservationLogic; // New for Task 2
+    private final ChatIF ui;
 
-    // Initializes the server on a specific port and sets up the DB repository.
+    /**
+     * Constructs the server, initializes repositories/logic, and starts the scheduler.
+     * @param port The port number to listen on.
+     * @param ui   The interface for logging server events.
+     */
     public BistroServer(int port, ChatIF ui) {
         super(port);
         this.orderRepo = new OrderRepository();
+        this.userRepo = new UserRepository();
+        this.userLogic = new UserManagement();
+        this.reservationLogic = new ReservationLogic(); // Init Task 2 Logic
         this.ui = ui;
+
+        // Start the background clock for automated tasks (Reminders/Cancellations)
+        OrderScheduler scheduler = new OrderScheduler(orderRepo);
+        scheduler.start();
+        
+        log("[Server] Order Scheduler initialized and started.");
     }
 
-    // Helper method to display messages on both Console and Server GUI
     private void log(String s) {
         System.out.println(s);
         if (ui != null) ui.display(s);
@@ -31,236 +53,197 @@ public class BistroServer extends AbstractServer {
 
     @Override
     protected void serverStarted() {
-        log("[Server] Listening on port " + getPort());
+        log("[Server] Bistro Server Listening on port " + getPort());
     }
 
     @Override
     protected void serverStopped() {
-        log("[Server] Stopped listening.");
+        log("[Server] Server stopped.");
     }
 
-    // Triggered when a new client connects to the server
     @Override
     protected void clientConnected(ConnectionToClient client) {
-        try {
-            String ip = client.getInetAddress().getHostAddress();
-            String host = client.getInetAddress().getHostName();
-            client.setInfo("SavedIP", ip);
-            client.setInfo("SavedHost", host);
-            log("[Client Connected] Status=Connected | IP=" + ip + " | Host=" + host);
-        } catch (Exception e) {
-            log("[Client Connected] Error saving client info.");
-        }
-    }
-
-    // Triggered when a client disconnects
-    @Override
-    protected void clientDisconnected(ConnectionToClient client) {
-        String ip = (String) client.getInfo("SavedIP");
-        String host = (String) client.getInfo("SavedHost");
-        if (ip == null) ip = "Unknown";
-        if (host == null) host = "Unknown";
-        log("[Client Disconnected] Status=Disconnected | IP=" + ip + " | Host=" + host);
+        log("[Client Connected] IP: " + client.getInetAddress().getHostAddress());
     }
 
     @Override
     protected void handleMessageFromClient(Object msg, ConnectionToClient client) {
-        log("-------------------------------");
-        log("[Debug] Message received from Client: " + client.getInetAddress());
-
-        // Ensure message is not null
-        if (msg == null) {
-            log("[Error] Message is NULL!");
+        log("-------------------------------------------");
+        
+        if (!(msg instanceof BistroMessage)) {
+            log("[Error] Invalid message type received.");
             return;
         }
-        
-        log("[Debug] Message Class Type: " + msg.getClass().getSimpleName());
 
-        // Ensure message is of type BistroMessage
-        if (msg instanceof BistroMessage) {
-            BistroMessage request = (BistroMessage) msg;
-            ActionType type = request.getType(); 
-            log("[Debug] ActionType received: " + type);
-            if (type == ActionType.CLIENT_QUIT) {
-                try {
-                    log("Client requested disconnect. Closing connection...");
-                    client.close();
-                } catch (IOException e) {
-                    log("[Error] closing connection: " + e.getMessage());
-                }
-                return; 
-            }
-            BistroMessage responseMsg = null; 
+        BistroMessage request = (BistroMessage) msg;
+        ActionType type = request.getType();
+        BistroMessage responseMsg = null;
 
-            // Request Processing based on ActionType
+        log("[Request] Processing Action: " + type);
+
+        try {
             switch (type) {
-                case GET_ALL_ORDERS:
-                    log("[Debug] Processing GET_ALL_ORDERS...");
-                    try {
-                        ArrayList<Order> list = orderRepo.getAllOrders();
+         
+                case LOGIN:
+                    if (request.getData() instanceof User) {
+                        User loginData = (User) request.getData();
+                        User authenticatedUser = userRepo.login(loginData.getUsername(), loginData.getPassword());
+                        responseMsg = new BistroMessage(ActionType.LOGIN, authenticatedUser);
+                    }
+                    break;
 
-                        if (list != null) {
-                            log("[Debug] DB returned list with size: " + list.size());
+                case REGISTER_USER:
+                    if (request.getData() instanceof User) {
+                        User newUser = (User) request.getData();
+                        // Assuming the requester has WORKER privileges for this operation
+                        int newId = userLogic.registerMember(Role.WORKER, newUser);
+                        responseMsg = new BistroMessage(ActionType.REGISTER_USER, newId);
+                        log("[Register] New member registered with ID: " + newId);
+                    }
+                    break;
+
+                case IDENTIFY_BY_QR:
+                    if (request.getData() instanceof String) {
+                        String qrCode = (String) request.getData();
+                        User identifiedUser = userRepo.getUserByQRCode(qrCode);
+                        
+                        if (identifiedUser != null) {
+                            log("[Identify] Success: " + identifiedUser.getFirstName() + " identified.");
+                            responseMsg = new BistroMessage(ActionType.IDENTIFY_BY_QR, identifiedUser);
                         } else {
-                            log("[Error] DB returned NULL list!");
+                            log("[Identify] Failed: QR code not found.");
+                            responseMsg = new BistroMessage(ActionType.IDENTIFY_BY_QR, "ERROR: Invalid QR Code");
                         }
-                        responseMsg = new BistroMessage(ActionType.GET_ALL_ORDERS, list);
-                    } catch (Exception e) {
-                        log("[Error] Failed during GET_ALL_ORDERS: " + e.getMessage());
-                        e.printStackTrace();
                     }
                     break;
 
-                case UPDATE_ORDER:
-                    log("[Debug] Processing UPDATE_ORDER...");
-                    Object data = request.getData();
-                    log("[Debug] Data payload: " + (data != null ? data.toString() : "NULL"));
-
-                    if (data instanceof Order) {
-                        Order order = (Order) data;
-                        log("[Debug] Updating Order #" + order.getOrderNumber());
-
-                        String result = orderRepo.updateOrder(order.getOrderNumber(), order.getOrderDate(), order.getNumberOfGuests());
-                        log("[Debug] DB Update Result: " + result);
-
-                        responseMsg = new BistroMessage(ActionType.UPDATE_ORDER, result);
-                    } else {
-                        log("[Error] Data provided is NOT an Order object!");
-                        responseMsg = new BistroMessage(ActionType.UPDATE_ORDER, "ERROR: Invalid Data");
+                case GET_USER_HISTORY:
+                    if (request.getData() instanceof Integer) {
+                        int subscriberId = (Integer) request.getData();
+                        ArrayList<Order> history = orderRepo.getMemberHistory(subscriberId);
+                        log("[History] Sending " + history.size() + " records to subscriber " + subscriberId);
+                        responseMsg = new BistroMessage(ActionType.GET_USER_HISTORY, history);
                     }
                     break;
 
-                case READ_ORDER:
-                    log("[Debug] Processing READ_ORDER...");
-                    Object idData = request.getData();
-                    log("[Debug] Searching for ID: " + idData);
+                case UPDATE_USER_INFO:
+                    if (request.getData() instanceof User) {
+                        User u = (User) request.getData();
+                        userLogic.updateContact(u.getUserId(), u.getPhone(), u.getEmail());
+                        responseMsg = new BistroMessage(ActionType.UPDATE_USER_INFO, "OK");
+                    }
+                    break;
 
-                    if (idData instanceof Integer) {
-                        int id = (Integer) idData;
-                        Order found = orderRepo.getOrderById(id);
+      
+                case CREATE_ORDER:
+                    if (request.getData() instanceof Order) {
+                        Order newOrder = (Order) request.getData();
+                        try {
+                            // 1. Check availability logic (Task 2 requirement)
+                            List<Timestamp> alternatives = reservationLogic.checkAvailability(newOrder);
 
-                        if (found != null) {
-                            log("[Debug] Order found!");
+                            if (alternatives == null) {
+                                // Table is available -> Create Order in DB
+                                int code = (int)(Math.random() * 9000) + 1000;
+                                newOrder.setConfirmationCode(code);
+                                newOrder.setStatus("PENDING"); // Default status
+                                
+                                int orderId = orderRepo.createOrder(newOrder); // INSERT to DB
+                                newOrder.setOrderNumber(orderId);
+                                
+                                responseMsg = new BistroMessage(ActionType.CREATE_ORDER, newOrder);
+                                log("[Order] Approved. ID: " + orderId + ", Code: " + code);
+                            } else {
+                                // Table is full -> Return alternatives
+                                responseMsg = new BistroMessage(ActionType.ORDER_ALTERNATIVES, alternatives);
+                                log("[Order] Requested time full. Suggesting alternatives.");
+                            }
+                        } catch (IllegalArgumentException e) {
+                            responseMsg = new BistroMessage(ActionType.CREATE_ORDER, "ERROR: " + e.getMessage());
+                        }
+                    }
+                    break;
+
+                case ENTER_WAITLIST:
+                    if (request.getData() instanceof Order) {
+                        Order walkIn = (Order) request.getData();
+                        
+                        // Check availability NOW (Real-time)
+                        if (orderRepo.isTableAvailableNow(walkIn.getNumberOfGuests())) {
+                            // Immediate Seating
+                            walkIn.setStatus("SEATED");
+                            walkIn.setConfirmationCode(0); 
+                            int id = orderRepo.createOrder(walkIn);
+                            walkIn.setOrderNumber(id);
+                            
+                            log("[Waitlist] Table available immediately. Seating Customer ID: " + id);
+                            responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, walkIn);
                         } else {
-                            log("[Debug] Order NOT found (null).");
+                            // No space -> Add to Waitlist
+                            walkIn.setStatus("WAITING");
+                            int code = (int)(Math.random() * 9000) + 1000;
+                            walkIn.setConfirmationCode(code);
+                            int id = orderRepo.createOrder(walkIn);
+                            walkIn.setOrderNumber(id);
+                            
+                            log("[Waitlist] Restaurant full. Customer added to waitlist. Code: " + code);
+                            responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, walkIn);
                         }
-                        responseMsg = new BistroMessage(ActionType.READ_ORDER, found);
-                    } else {
-                        log("[Error] ID provided is not an Integer!");
-                    }
-                    break;
-                
-                case GET_ALL_MEMBERS:
-                	log("[Debug] Processing GET_ALL_MEMBERS...");
-                    ArrayList<Member> members = memberRepo.getAllMembers();
-                    log("[Debug] members list = " + (members == null ? "NULL" : ("size=" + members.size())));
-                    responseMsg = new BistroMessage(ActionType.GET_ALL_MEMBERS, members);
-                    break;
-
-                case GET_MEMBER_BY_ID:
-                    Object idObj = request.getData();
-                    if (idObj instanceof String) {
-                        Member m = memberRepo.getMemberById((String) idObj);
-                        responseMsg = new BistroMessage(ActionType.GET_MEMBER_BY_ID, m);
-                    } else {
-                        responseMsg = new BistroMessage(ActionType.GET_MEMBER_BY_ID, "ERROR: Invalid memberId");
                     }
                     break;
 
-                case REGISTER_MEMBER: {
-                    log("[Debug] Processing REGISTER_MEMBER...");
-                    
-                    // Taking the data that the client sent
-                    Object mObj = request.getData();
-                    // if its not kind of member it's an error
-                    if (!(mObj instanceof Member)) {
-                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, "ERROR: Invalid data");
-                        break;
-                    }
-                    
-                    Member m = (Member) mObj;
-                    
-                    // Trim to clean spaces
-                    String username = (m.getUserName() == null) ? "" : m.getUserName().trim();
-                    String fullName = (m.getFullName() == null) ? "" : m.getFullName().trim();
-                    String phone = (m.getPhone() == null) ? "" : m.getPhone().trim();
-                    String email = (m.getEmail() == null) ? "" : m.getEmail().trim();
-                    
-                    // If statements
-                    if (username.isEmpty() || fullName.isEmpty()) {
-                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, "ERROR: Username and Full Name are required");
-                        break;
-                    }
-
-                  
-                    if (memberRepo.usernameExists(username)) {
-                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, "ERROR: Username already exists");
-                        break;
-                    }                  
-                    
-
-                    if (!email.isEmpty() && memberRepo.emailExists(email)) {
-                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, "ERROR: Email already exists");
-                        break;
-                    }
-
-                    if (!phone.isEmpty() && memberRepo.phoneExists(phone)) {
-                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, "ERROR: Phone already exists");
-                        break;
-                    }
-                    
-                    // Create unique id's
-                    String memberId = java.util.UUID.randomUUID().toString();
-                    String qrCode   = java.util.UUID.randomUUID().toString();
-                    
-                    // Insert the details to DB
-                    String res = memberRepo.insertMember(memberId, qrCode, username, fullName, m.getPhone(), m.getEmail());
-
-                    if (res != null && !res.toUpperCase().startsWith("ERROR")) {
-                        Member created = new Member(memberId, qrCode, username, fullName, m.getPhone(), m.getEmail());
-                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, created);
-                    } else {
-                        responseMsg = new BistroMessage(ActionType.REGISTER_MEMBER, "ERROR: " + res);
+                case LEAVE_WAITLIST:
+                    // Requirement: Customer can leave waitlist at any time.
+                    if (request.getData() instanceof Integer) {
+                        int orderId = (Integer) request.getData();
+                        orderRepo.updateOrderStatus(orderId, "CANCELLED");
+                        responseMsg = new BistroMessage(ActionType.LEAVE_WAITLIST, "OK");
+                        log("[Waitlist] Order " + orderId + " removed from waitlist.");
                     }
                     break;
-                }
 
-
-                case UPDATE_MEMBER_CONTACT:
-                    // הכי פשוט: שולחים Member (עם memberId + phone/email חדשים)
-                    Object mObj2 = request.getData();
-                    if (mObj2 instanceof Member) {
-                        Member m = (Member) mObj2;
-                        String res = memberRepo.updateContact(m.getMemberId(), m.getPhone(), m.getEmail());
-                        responseMsg = new BistroMessage(ActionType.UPDATE_MEMBER_CONTACT, res);
-                    } else {
-                        responseMsg = new BistroMessage(ActionType.UPDATE_MEMBER_CONTACT, "ERROR: Invalid data");
+                case UPDATE_ORDER_STATUS:
+                    // Handles manual updates (e.g., Staff marks table as SEATED or COMPLETED)
+                    if (request.getData() instanceof Order) {
+                        Order o = (Order) request.getData();
+                        boolean success = orderRepo.updateOrderStatus(o.getOrderNumber(), o.getStatus());
+                        
+                        // If a table becomes free, notify the next person in line
+                        if ("COMPLETED".equals(o.getStatus())) {
+                            Order nextPerson = orderRepo.getNextInWaitlist(o.getNumberOfGuests());
+                            if (nextPerson != null) {
+                                log("[Waitlist] Table freed. Notifying Order #" + nextPerson.getOrderNumber());
+                                // Change status to NOTIFIED and reset timer for 15-min countdown
+                                orderRepo.updateOrderStatus(nextPerson.getOrderNumber(), "NOTIFIED");
+                                orderRepo.updateOrderTime(nextPerson.getOrderNumber());
+                            }
+                        }
+                        
+                        responseMsg = new BistroMessage(ActionType.UPDATE_ORDER_STATUS, success ? "OK" : "ERROR");
                     }
                     break;
-                    
+
+                case CLIENT_QUIT:
+                    log("[Server] Client disconnected.");
+                    client.close();
+                    return;
+
                 default:
-                    log("[Error] Unknown ActionType received: " + type);
+                    log("[Error] Unsupported ActionType: " + type);
                     break;
             }
-
-            // Send Response back to Client
-            if (responseMsg != null) {
-                try {
-                    log("[Debug] Sending response to client...");
-                    client.sendToClient(responseMsg);
-                    log("[Debug] Response sent successfully.");
-                } catch (Exception e) {
-                    log("[Error] Failed to send response: " + e.getMessage());
-                }
-            } else {
-                log("[Error] responseMsg is null, nothing sent.");
-            }
-
-        } else {
-            log("[Error] Received object is NOT an instance of BistroMessage.");
-            log("[Error] It is: " + msg.getClass().getName());
+        } catch (Exception e) {
+            log("[Exception] " + type + " failed: " + e.getMessage());
+            responseMsg = new BistroMessage(type, "ERROR: " + e.getMessage());
         }
-        log("---------------------------");
+
+        if (responseMsg != null) {
+            try {
+                client.sendToClient(responseMsg);
+            } catch (IOException e) {
+                log("[Error] Could not send response: " + e.getMessage());
+            }
+        }
+        log("-------------------------------------------");
     }
 }
-

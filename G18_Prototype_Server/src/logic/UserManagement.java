@@ -1,66 +1,72 @@
 package logic;
 
-import java.util.NoSuchElementException;
 import java.util.UUID;
+import common.User;
+import common.Role; 
+import server.UserRepository;
 
-import common.Member;
-import server.MemberRepository;
-
+/**
+ * Service class for managing user-related business logic and restaurant policies.
+ * Handles registration, contact updates, and discount calculations.
+ */
 public class UserManagement {
 
-    public enum Role {
-        RESTAURANT_MANAGER, MEMBER
-    }
+    private final UserRepository repo = new UserRepository();
 
+    /**
+     * Inner helper class to validate contact information.
+     */
     static final class ContactInfo {
-        private final String phone;
-        private final String email;
-
         ContactInfo(String phone, String email) {
-            if ((phone == null || phone.isBlank()) && (email == null || email.isBlank())) {
-                throw new IllegalArgumentException("You must provide at least phone or email.");
+            if ((phone == null || phone.trim().isEmpty()) && (email == null || email.trim().isEmpty())) {
+                throw new IllegalArgumentException("At least one contact method (phone or email) is required.");
             }
-            this.phone = phone;
-            this.email = email;
         }
     }
 
-    private final MemberRepository repo = new MemberRepository();
+    /**
+     * Registers a new subscriber with validation and QR code generation.
+     * @param callerRole The role of the user performing the registration.
+     * @param newUser The user data to register.
+     * @return The new User ID.
+     */
+    public int registerMember(Role callerRole, User newUser) {
+        if (callerRole != Role.RESTAURANT_MANAGER && callerRole != Role.WORKER) {
+            throw new IllegalStateException("Only staff can register new members.");
+        }
+        if (newUser.getUsername() == null || newUser.getUsername().trim().isEmpty()) {
+            throw new IllegalArgumentException("Username is required.");
+        }
+        if (repo.isUsernameTaken(newUser.getUsername())) {
+            throw new IllegalStateException("Username already exists.");
+        }
 
-    public Member getMemberById(String memberId) {
-        Member member = repo.getMemberById(memberId); // חייב להחזיר logic.Member
-        if (member == null) throw new NoSuchElementException("Member not found: " + memberId);
-        return member;
-    }
+        new ContactInfo(newUser.getPhone(), newUser.getEmail());
 
-    public Member registerMember(Role caller, String userName, String fullName, String phone, String email) {
-        if (caller != Role.RESTAURANT_MANAGER)
-            throw new IllegalStateException("Only the manager can register a member");
-
-        if (userName == null || userName.isBlank() || fullName == null || fullName.isBlank())
-            throw new IllegalArgumentException("You must provide a username and a fullname.");
-
-        if (repo.usernameExists(userName))
-            throw new IllegalStateException("Username already exists: " + userName);
-
-        String memberId = UUID.randomUUID().toString();
+        // Generate unique digital card ID
         String qrCode = UUID.randomUUID().toString();
+        newUser.setQrCode(qrCode);
 
-        new ContactInfo(phone, email);
-
-        String res = repo.insertMember(memberId, qrCode, userName, fullName, phone, email);
-        if (!"OK".equals(res)) throw new RuntimeException(res);
-
-        return new Member(memberId, qrCode, userName, fullName, phone, email);
+        int newId = repo.registerUser(newUser);
+        if (newId == -1) throw new RuntimeException("DB Error during registration.");
+        return newId;
     }
 
-    public void updateContact(Role caller, String memberId, String newPhone, String newEmail) {
-        if (caller != Role.MEMBER)
-            throw new IllegalStateException("Only the member can update his contact info");
+    /**
+     * Calculates final price based on the restaurant's discount policy.
+     * Rule: Members get 10% discount.
+     */
+    public double calculateFinalPrice(User user, double originalPrice) {
+        if (user != null && user.getRole() == Role.MEMBER) {
+            return originalPrice * 0.9; // 10% Discount
+        }
+        return originalPrice;
+    }
 
+    public void updateContact(int userId, String newPhone, String newEmail) {
         new ContactInfo(newPhone, newEmail);
-
-        String res = repo.updateContact(memberId, newPhone, newEmail);
-        if (!"OK".equals(res)) throw new RuntimeException(res);
+        if (!repo.updateUserInfo(userId, newPhone, newEmail)) {
+            throw new RuntimeException("Update failed.");
+        }
     }
 }

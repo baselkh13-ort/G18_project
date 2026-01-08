@@ -15,6 +15,8 @@ public class Order implements Serializable {
 	private int confirmationCode; // Unique code used for order verification.
 	private int subscriberID; // ID of the subscriber who placed the order.
 	private Date dateOfPlacingOrder; // The timestamp when the order was created.
+	private String phone;
+    private String email;
 	
 	// Initializes a new Order instance with all attributes.
 	public Order(int orderNumber, Date orderDate, int numberOfGuests, int confirmationCode, int subscriberID, Date dateOfPlacingOrder) {
@@ -93,4 +95,58 @@ public class Order implements Serializable {
 		return String.format("Order [Num=%s, Date=%s, Guests=%s, Code=%s, SubID=%s, PlacedOn=%s]", 
 				orderNumber, orderDate, numberOfGuests, confirmationCode, subscriberID, dateOfPlacingOrder);
 	}
+	/**
+     * Gets the current status of the order.
+     * Common statuses include PENDING, SEATED, CANCELLED, and COMPLETED.
+     * This is used to track the member's visit history and automated processes.
+     * * @return A string representing the order's current progress in the system.
+     */
+    public String getStatus() {
+        return status;
+    }
+
+    /**
+     * Sets the status of the order.
+     * This method is called by the server logic to update the order's state,
+     * such as when a member checks in or when a system timeout cancels a late order.
+     * * @param status The new status to be assigned to the order.
+     */
+    public void setStatus(String status) {
+        this.status = status;
+    }
+    /**
+     * Gets the contact phone number for the order.
+     * This is especially important for non-subscriber (casual) customers.
+     * @return The phone number string.
+     */
+    public String getPhone() { 
+        return phone; 
+    }
+
+    /**
+     * Sets the contact phone number for this order.
+     * Required for identification and sending automated SMS reminders.
+     * @param phone The contact phone number to set.
+     */
+    public void setPhone(String phone) { 
+        this.phone = phone; 
+    }
+
+    /**
+     * Gets the contact email address for the order.
+     * Used for sending digital invoices and email reminders.
+     * @return The email address string.
+     */
+    public String getEmail() { 
+        return email; 
+    }
+
+    /**
+     * Sets the contact email address for this order.
+     * Required for non-subscriber customers to receive confirmation and billing.
+     * @param email The contact email address to set.
+     */
+    public void setEmail(String email) { 
+        this.email = email; 
+    }
 }
