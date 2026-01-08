@@ -1,4 +1,4 @@
-package logic;
+package common;
 import java.io.Serializable;
 
 public class BistroMessage implements Serializable{

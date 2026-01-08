@@ -3,6 +3,7 @@ package logic;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
+import common.Member;
 import server.MemberRepository;
 
 public class UserManagement {

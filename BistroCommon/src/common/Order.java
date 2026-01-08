@@ -1,4 +1,4 @@
-package logic;
+package common;
 
 import java.io.Serializable;
 import java.sql.Date;

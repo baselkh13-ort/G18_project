@@ -5,8 +5,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList; 
-import logic.Order;
+import java.util.ArrayList;
+
+import common.Order;
 
 /**
  * Repository class responsible for all database operations regarding Orders.

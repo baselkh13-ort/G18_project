@@ -1,13 +1,13 @@
 package server;
-import logic.Member;
+import common.ActionType;
+import common.BistroMessage;
 import common.ChatIF;
+import common.Member;
+import common.Order;
 import ocsf.server.AbstractServer;
 import ocsf.server.ConnectionToClient;
 import java.util.ArrayList;
-import java.io.IOException; 
-import logic.BistroMessage;
-import logic.Order;
-import logic.ActionType;
+import java.io.IOException;
 
 // client connections and handles database operations via OrderRepository.
 public class BistroServer extends AbstractServer {

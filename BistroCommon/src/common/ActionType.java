@@ -1,4 +1,4 @@
-package logic;
+package common;
 //Defines the command types sent between Client and Server.
 
 public enum ActionType {
