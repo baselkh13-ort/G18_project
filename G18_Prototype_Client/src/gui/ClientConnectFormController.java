@@ -2,14 +2,15 @@ package gui;
 
 import client.ClientController;
 import client.ClientUI;
+import gui.common.LoginController;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.TextField;
 import javafx.scene.control.Label; // Import Label
+import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 public class ClientConnectFormController {
@@ -46,7 +47,7 @@ public class ClientConnectFormController {
 
             //Open the main application window
             Stage primaryStage = new Stage();
-            UserMenuController aFrame = new UserMenuController(); 
+            LoginController aFrame = new LoginController(); 
             aFrame.start(primaryStage);
             
         } catch (Exception e) {

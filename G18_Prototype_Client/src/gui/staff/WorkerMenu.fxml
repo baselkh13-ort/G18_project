@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+
+<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="gui.staff.WorkerMenuController"
+      alignment="TOP_CENTER" spacing="20.0"
+      stylesheets="@WorkerMenu.css" styleClass="root-container">
+
+    <padding>
+        <Insets top="40" right="40" bottom="40" left="40"/>
+    </padding>
+
+    <VBox alignment="CENTER" spacing="10">
+        <Label text="Staff Dashboard" styleClass="main-title"/>
+        <Label fx:id="lblWelcome" text="Hello, User" styleClass="welcome-label"/>
+    </VBox>
+
+    <Separator maxWidth="300"/>
+
+    <VBox alignment="CENTER" spacing="15">
+        <Label text="Client Management" styleClass="section-title"/>
+        
+        <Button fx:id="btnRegisterClient" text="Register New Client" 
+                onAction="#register" styleClass="menu-button"/>
+                
+        </VBox>
+
+    <VBox alignment="CENTER" spacing="15">
+        <Button fx:id="btnViewReports" text="View Monthly Reports" 
+                styleClass="menu-button, manager-button"/>
+                
+        </VBox>
+    
+    <Separator maxWidth="300"/>
+
+</VBox>

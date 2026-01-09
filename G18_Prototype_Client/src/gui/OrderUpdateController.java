@@ -41,7 +41,7 @@ public class OrderUpdateController {
         txtDate.setText(order.getOrderDate().toString());
         txtGuests.setText(String.valueOf(order.getNumberOfGuests()));
         txtConfirmationCode.setText(String.valueOf(order.getConfirmationCode()));
-        txtSubscriber.setText(String.valueOf(order.getSubscriberID()));
+        txtSubscriber.setText(String.valueOf(order.getMemberID()));
         txtDateOfPlacingOrder.setText(order.getDateOfPlacingOrder().toString());
 
         //Lock constant fields
