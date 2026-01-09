@@ -62,10 +62,10 @@ public class User implements Serializable {
 	 * @param phone      Phone number.
 	 * @param email      Email address.
 	 */
-	public User(Role role, String username, String password,int userID, String firstName, String lastName,
+	public User(String username, String password,int userID, String firstName, String lastName,
 			String phone, String email) {
 		// Calls the Master Constructor with '0' for memberCode
-		this(role, username, password, userID, firstName, lastName, phone, email, 0);
+		this(null, username, password, userID, firstName, lastName, phone, email, 0);
 	}
 		
 
