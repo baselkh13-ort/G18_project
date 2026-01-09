@@ -3,16 +3,33 @@ package common;
 
 public enum ActionType {
 	LOGIN,
-    READ_ORDER,      // Request to fetch a specific order by ID
-    UPDATE_ORDER,    // Request to update an existing order
-    GET_ALL_ORDERS,   // Request to retrieve all orders from the DB
-    REGISTER_NEW_MEMBER, // Register a new member
-    UPDATE_MEMBER_CONTACT, // Update the contact info
-    GET_MEMBER_BY_ID, // Getting member object by member id
-    GET_ALL_MEMBERS, // Getting all the members from DB
-    GET_USER_HISTORY, //Getting the user history from DB
-    JOIN_WAITLIST, //join to waitingList
-    ENTER_CONFIRMATION_CODE,
+	REGISTER_CLEINT,// Register a new member
+	IDENTIFY_BY_QR,
+	GET_USER_HISTORY, //Getting the user history from DB
+	UPDATE_USER_INFO, // Update the contact info
+   
+	GET_ALL_MEMBERS,
+    CREATE_ORDER,
     ORDER_ALTERNATIVES,
-    CLIENT_QUIT 	// Indicates that the client is requesting a graceful disconnection from the server
+    
+    ENTER_WAITLIST,
+    LEAVE_WAITLIST,
+    UPDATE_ORDER_STATUS,
+    
+    VALIDATE_ARRIVAL,
+    RESTORE_CODE,
+    
+    PAY_BILL,
+    
+    GET_ALL_ORDERS,
+    ADD_TABLE,
+    
+    REMOVE_TABLE,           
+    UPDATE_TABLE,           
+    GET_OPENING_HOURS,      
+    UPDATE_OPENING_HOURS,   
+
+    GET_PERFORMANCE_REPORT,  
+    GET_SUBSCRIPTION_REPORT, 
+    CLIENT_QUIT
 }
