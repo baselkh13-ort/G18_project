@@ -1,152 +1,172 @@
 package common;
 
 import java.io.Serializable;
-import java.sql.Date;
+import java.sql.Timestamp;
 
-// Represents an order entity implementing Serializable for data transfer.
+/**
+ * Represents a dining order or reservation in the Bistro system.
+ * Contains details about the schedule, guests, status, and associated table.
+ 
+ */
 public class Order implements Serializable {
-	
-	// Unique identifier for serialization versioning.
-	private static final long serialVersionUID = 1L;
-	
-	private int orderNumber; // Unique ID identifying the order.
-	private Date orderDate; // The scheduled date for the order.
-	private int numberOfGuests; // Total count of guests included in the order.
-	private int confirmationCode; // Unique code used for order verification.
-	private int subscriberID; // ID of the subscriber who placed the order.
-	private Date dateOfPlacingOrder; // The timestamp when the order was created.
-	private String phone;
+
+    private static final long serialVersionUID = 1L;
+
+    // Database Identifiers 
+    private int orderNumber;
+    private int confirmationCode;
+    private int subscriberId;      // 0 if it is a casual customer (non-member)
+    private Timestamp orderDate;   // Scheduled date and time of the visit
+    private Timestamp dateOfPlacingOrder; // Timestamp of when the order was created
+    
+    //  Order Details 
+    private int numberOfGuests;
+    private String status;         // Enum values: PENDING, WAITING, NOTIFIED, SEATED, COMPLETED, CANCELLED
+    private Double totalPrice;     // Calculated bill amount (Mission 5)
+    private Integer assignedTableId; // Physical table ID, null if not currently seated (Mission 4)
+
+    //  Contact Info (For Casual & Members) 
+    private String phone;
     private String email;
-	
-	// Initializes a new Order instance with all attributes.
-	public Order(int orderNumber, Date orderDate, int numberOfGuests, int confirmationCode, int subscriberID, Date dateOfPlacingOrder) {
-		super();
-		this.orderNumber = orderNumber;
-		this.orderDate = orderDate;
-		this.numberOfGuests = numberOfGuests;
-		this.confirmationCode = confirmationCode;
-		this.subscriberID = subscriberID;
-		this.dateOfPlacingOrder = dateOfPlacingOrder;
-	}
+    private String customerName;   // Optional display name (First + Last)
 
-	// Retrieves the order number.
-	public int getOrderNumber() {
-		return orderNumber;
-	}
-
-	// Updates the order number.
-	public void setOrderNumber(int orderNumber) {
-		this.orderNumber = orderNumber;
-	}
-
-	// Retrieves the scheduled order date.
-	public Date getOrderDate() {
-		return orderDate;
-	}
-
-	// Updates the scheduled order date.
-	public void setOrderDate(Date orderDate) {
-		this.orderDate = orderDate;
-	}
-
-	// Retrieves the number of guests.
-	public int getNumberOfGuests() {
-		return numberOfGuests;
-	}
-
-	// Updates the number of guests.
-	public void setNumberOfGuests(int numberOfGuests) {
-		this.numberOfGuests = numberOfGuests;
-	}
-
-	// Retrieves the confirmation code.
-	public int getConfirmationCode() {
-		return confirmationCode;
-	}
-
-	// Updates the confirmation code.
-	public void setConfirmationCode(int confirmationCode) {
-		this.confirmationCode = confirmationCode;
-	}
-
-	// Retrieves the subscriber ID.
-	public int getSubscriberID() {
-		return subscriberID;
-	}
-
-	// Updates the subscriber ID.
-	public void setSubscriberID(int subscriberID) {
-		this.subscriberID = subscriberID;
-	}
-
-	// Retrieves the date the order was placed.
-	public Date getDateOfPlacingOrder() {
-		return dateOfPlacingOrder;
-	}
-
-	// Updates the date the order was placed.
-	public void setDateOfPlacingOrder(Date dateOfPlacingOrder) {
-		this.dateOfPlacingOrder = dateOfPlacingOrder;
-	}
-	
-	// Returns a string representation of the order details.
-	@Override
-	public String toString() {
-		return String.format("Order [Num=%s, Date=%s, Guests=%s, Code=%s, SubID=%s, PlacedOn=%s]", 
-				orderNumber, orderDate, numberOfGuests, confirmationCode, subscriberID, dateOfPlacingOrder);
-	}
-	/**
-     * Gets the current status of the order.
-     * Common statuses include PENDING, SEATED, CANCELLED, and COMPLETED.
-     * This is used to track the member's visit history and automated processes.
-     * * @return A string representing the order's current progress in the system.
+    /**
+     * Full Constructor for Database Retrieval 
+     * Used when mapping a ResultSet row to an Order object.
+     * * @param orderNumber       Unique order ID from DB.
+     * @param orderDate         Scheduled time for the visit.
+     * @param numberOfGuests    Amount of guests.
+     * @param confirmationCode  Unique code for verification.
+     * @param subscriberId      The Member ID (or 0 for casual).
+     * @param dateOfPlacingOrder Creation timestamp.
      */
-    public String getStatus() {
-        return status;
+    public Order(int orderNumber, Timestamp orderDate, int numberOfGuests, int confirmationCode, 
+                 int subscriberId, Timestamp dateOfPlacingOrder) {
+        this.orderNumber = orderNumber;
+        this.orderDate = orderDate;
+        this.numberOfGuests = numberOfGuests;
+        this.confirmationCode = confirmationCode;
+        this.subscriberId = subscriberId;
+        this.dateOfPlacingOrder = dateOfPlacingOrder;
     }
 
     /**
-     * Sets the status of the order.
-     * This method is called by the server logic to update the order's state,
-     * such as when a member checks in or when a system timeout cancels a late order.
-     * * @param status The new status to be assigned to the order.
+     * Partial Constructor for Client Side creation.
+     * Used when a user fills out the reservation form.
+     * * @param orderDate      Requested time for the visit.
+     * @param numberOfGuests Amount of guests.
+     * @param phone          Contact phone number.
+     * @param email          Contact email address.
      */
-    public void setStatus(String status) {
-        this.status = status;
+    public Order(Timestamp orderDate, int numberOfGuests, String phone, String email) {
+        this.orderDate = orderDate;
+        this.numberOfGuests = numberOfGuests;
+        this.phone = phone;
+        this.email = email;
+        this.status = "PENDING"; // Default status for new orders
+        this.dateOfPlacingOrder = new Timestamp(System.currentTimeMillis());
     }
-    /**
-     * Gets the contact phone number for the order.
-     * This is especially important for non-subscriber (casual) customers.
-     * @return The phone number string.
-     */
+
+    //  Getters and Setters 
+
+    public int getOrderNumber() { 
+        return orderNumber; 
+    }
+
+    public void setOrderNumber(int orderNumber) { 
+        this.orderNumber = orderNumber; 
+    }
+
+    public int getConfirmationCode() { 
+        return confirmationCode; 
+    }
+
+    public void setConfirmationCode(int confirmationCode) { 
+        this.confirmationCode = confirmationCode; 
+    }
+
+    public int getSubscriberId() { 
+        return subscriberId; 
+    }
+
+    public void setSubscriberId(int subscriberId) { 
+        this.subscriberId = subscriberId; 
+    }
+
+    public Timestamp getOrderDate() { 
+        return orderDate; 
+    }
+
+    public void setOrderDate(Timestamp orderDate) { 
+        this.orderDate = orderDate; 
+    }
+
+    public Timestamp getDateOfPlacingOrder() { 
+        return dateOfPlacingOrder; 
+    }
+
+    public void setDateOfPlacingOrder(Timestamp dateOfPlacingOrder) { 
+        this.dateOfPlacingOrder = dateOfPlacingOrder; 
+    }
+
+    public int getNumberOfGuests() { 
+        return numberOfGuests; 
+    }
+
+    public void setNumberOfGuests(int numberOfGuests) { 
+        this.numberOfGuests = numberOfGuests; 
+    }
+
+    public String getStatus() { 
+        return status; 
+    }
+
+    public void setStatus(String status) { 
+        this.status = status; 
+    }
+
+    public Double getTotalPrice() { 
+        return totalPrice; 
+    }
+
+    public void setTotalPrice(Double totalPrice) { 
+        this.totalPrice = totalPrice; 
+    }
+
+    public Integer getAssignedTableId() { 
+        return assignedTableId; 
+    }
+
+    public void setAssignedTableId(Integer assignedTableId) { 
+        this.assignedTableId = assignedTableId; 
+    }
+
     public String getPhone() { 
         return phone; 
     }
 
-    /**
-     * Sets the contact phone number for this order.
-     * Required for identification and sending automated SMS reminders.
-     * @param phone The contact phone number to set.
-     */
     public void setPhone(String phone) { 
         this.phone = phone; 
     }
 
-    /**
-     * Gets the contact email address for the order.
-     * Used for sending digital invoices and email reminders.
-     * @return The email address string.
-     */
     public String getEmail() { 
         return email; 
     }
 
-    /**
-     * Sets the contact email address for this order.
-     * Required for non-subscriber customers to receive confirmation and billing.
-     * @param email The contact email address to set.
-     */
     public void setEmail(String email) { 
         this.email = email; 
+    }
+    
+    public String getCustomerName() { 
+        return customerName; 
+    }
+
+    public void setCustomerName(String customerName) { 
+        this.customerName = customerName; 
+    }
+
+    @Override
+    public String toString() {
+        return "Order [ID=" + orderNumber + ", Date=" + orderDate + ", Status=" + status + "]";
     }
 }

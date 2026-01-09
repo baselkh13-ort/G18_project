@@ -2,18 +2,34 @@ package common;
 //Defines the command types sent between Client and Server.
 
 public enum ActionType {
-    READ_ORDER,      // Request to fetch a specific order by ID
-    UPDATE_ORDER,    // Request to update an existing order
-    GET_ALL_ORDERS,   // Request to retrieve all orders from the DB
+	LOGIN,
+	REGISTER_CLEINT,// Register a new member
+	IDENTIFY_BY_QR,
+	GET_USER_HISTORY, //Getting the user history from DB
+	UPDATE_USER_INFO, // Update the contact info
+   
     
-    // Register a member
-    REGISTER_MEMBER,
-    // Update the contact info
-    UPDATE_MEMBER_CONTACT,
-    // Getting member object by member id
-    GET_MEMBER_BY_ID,
-    // Getting all the members from DB
-    GET_ALL_MEMBERS,
+    CREATE_ORDER,
+    ORDER_ALTERNATIVES,
     
-    CLIENT_QUIT 	// Indicates that the client is requesting a graceful disconnection from the server
+    ENTER_WAITLIST,
+    LEAVE_WAITLIST,
+    UPDATE_ORDER_STATUS,
+    
+    VALIDATE_ARRIVAL,
+    RESTORE_CODE,
+    
+    PAY_BILL,
+    
+    GET_ALL_ORDERS,
+    ADD_TABLE,
+    
+    REMOVE_TABLE,           
+    UPDATE_TABLE,           
+    GET_OPENING_HOURS,      
+    UPDATE_OPENING_HOURS,   
+
+    GET_PERFORMANCE_REPORT,  
+    GET_SUBSCRIPTION_REPORT, 
+    CLIENT_QUIT
 }
