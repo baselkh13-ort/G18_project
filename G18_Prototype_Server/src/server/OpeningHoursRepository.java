@@ -10,13 +10,16 @@ import common.OpeningHour;
 public class OpeningHoursRepository {
     
     private final MySQLConnectionPool pool;
-
+    
+    /**
+     * Constructor: Initializes the connection to the database.
+     */
     public OpeningHoursRepository() {
         this.pool = MySQLConnectionPool.getInstance();
     }
 
     /**
-     * Retrieves all configured opening hours rules.
+     * Gets a list of all opening hours from the database.
      * @return A list of OpeningHour objects.
      */
     public ArrayList<OpeningHour> getAllOpeningHours() {
@@ -45,7 +48,7 @@ public class OpeningHoursRepository {
     }
 
     /**
-     * Updates an existing opening hour rule.
+     * Updates the time or status (open/closed) for a specific record.
      * @param oh The OpeningHour object containing updated data.
      * @return true if update was successful.
      */
