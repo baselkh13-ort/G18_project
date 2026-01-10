@@ -109,9 +109,8 @@ public class RegisterClientController {
 		
 		ChatClient.registeredUser = null;
 		// if we are here it means that all the fields are valid
-		User newUser = new User(userName, password, userID, firstName, lastName, phone, email);
-		newUser.setRole(Role.MEMBER); 
-		BistroMessage msg = new BistroMessage(ActionType.REGISTER_CLIENT, newUser);
+		User newUser = new User(userID,userName, password, firstName, lastName,Role.MEMBER, phone, email); 
+		BistroMessage msg = new BistroMessage(ActionType.REGISTER_CLEINT, newUser);
 		ClientUI.chat.accept(msg);
 		if (ChatClient.registeredUser != null) {
             User savedUser = ChatClient.registeredUser;

@@ -3,7 +3,13 @@
 .root {
     -fx-background-color: #f0f4f7; /* Light grey-blue background */
 }
-
+#lblTitle {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50; /* Dark elegant blue-grey */
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 2, 0, 0, 1);
+}
 /* --- Main Menu Buttons Design (Blue) --- */
 /* Changed from .button to .menu-button to match the FXML */
 .menu-button {
@@ -17,11 +23,11 @@
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);
 }
 
-#lblTitle {
-    -fx-font-size: 24px;      
-    -fx-font-weight: bold;    
-    -fx-text-fill: #5e5e5e;   
+.welcome-label {
+    -fx-font-size: 16px;
+    -fx-text-fill: #7f8c8d; /* אפור */
     -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-weight: normal;
 }
 
 /* Hover Effect: Darker blue + Slight Zoom */
@@ -35,12 +41,6 @@
 .menu-button:pressed {
     -fx-background-color: #0d47a1;
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 2, 0, 0, 1);
-}
-
-/* General Label Styling */
-.label {
-    -fx-text-fill: #333333;
-    -fx-font-family: "Segoe UI", sans-serif;
 }
 
 /* Special Design for Exit Button (Red)*/
@@ -65,27 +65,24 @@
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 2, 0, 0, 1);
 }
 
-.register-text {
-    -fx-text-fill: #555;
-    -fx-font-size: 13px;
-    -fx-font-family: "Segoe UI", sans-serif;
-}
-
-.register-link {
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-text-fill: #1a73e8;
-    -fx-font-size: 13px;
-    -fx-font-weight: normal;
-    -fx-padding: 0;
+/* --- Digital Member Card Button Design (Gold/Orange) --- */
+.card-button {
+    -fx-background-color: #FF9800; /* Orange/Gold */
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
     -fx-cursor: hand;
-    -fx-effect: none;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);
 }
 
-.register-link:hover {
-    -fx-underline: true;
+.card-button:hover {
+    -fx-background-color: #F57C00; 
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
 }
 
-.register-link:pressed {
-    -fx-text-fill: #174ea6;
+.card-button:pressed {
+    -fx-background-color: #E65100;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 2, 0, 0, 1);
 }

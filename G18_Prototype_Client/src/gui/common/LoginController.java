@@ -101,7 +101,7 @@ public class LoginController {
 		ChatClient.user = null;
 
 		// 2. Create a User object for authentication
-		User loginUser = new User(null, username, password, 0, null, null, null, null, 0);
+		User loginUser = new User(0, username, password, null, null, null, null, null);
 
 		// 3. Create Message and Send to Server
 		BistroMessage msg = new BistroMessage(ActionType.LOGIN, loginUser);
@@ -171,7 +171,7 @@ public class LoginController {
 		try {
 			if (ClientUI.chat != null) {
 				BistroMessage msg = new BistroMessage(ActionType.CLIENT_QUIT, null);
-				ClientUI.chat.accept(msg);
+				ClientUI.chat.client.sendToServer(msg);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -200,7 +200,7 @@ public class LoginController {
 				WorkerMenuController workerScreen = new WorkerMenuController();
 				workerScreen.start(stage);
 				break;
-				
+
 			default:
 				System.out.println("Error: Unknown Role");
 				lblError.setText("Error: User role not recognized.");
