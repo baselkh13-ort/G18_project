@@ -12,64 +12,92 @@ import java.util.Map;
 import java.sql.Timestamp;
 
 /**
- * The BistroServer class handles all client-server communications.
- * It coordinates between the UI, business logic, and database repositories.
- *  User Management (Login, Register, QR).
- *  Order Management (Reservations).
- *  Waitlist & Queues.
- *  Reception (Arrival Validation).
- *  Payment & Checkout.
- *  Management (Tables, Hours, All Orders).
- *  Reports (Performance, Subscription).
+ * The BistroServer class handles all client-server communications. It
+ * coordinates between the UI, business logic, and database repositories. User
+ * Management (Login, Register, QR). Order Management (Reservations). Waitlist &
+ * Queues. Reception (Arrival Validation). Payment & Checkout. Management
+ * (Tables, Hours, All Orders). Reports (Performance, Subscription).
  */
 public class BistroServer extends AbstractServer {
 
-    private OrderRepository orderRepo;
-    private UserRepository userRepo;
-    private UserManagement userLogic;
-    private ReservationLogic reservationLogic; 
-    private TableRepository tableRepo;           
-    private OpeningHoursRepository hoursRepo;    
-    private final ChatIF ui;
+	private OrderRepository orderRepo;
+	private UserRepository userRepo;
+	private UserManagement userLogic;
+	private ReservationLogic reservationLogic;
+	private TableRepository tableRepo;
+	private OpeningHoursRepository hoursRepo;
+	private final ChatIF ui;
+	
+	/**
+     * Constructs a new BistroServer.
+     * Initializes all database repositories, logic controllers, and starts the background scheduler.
+     * @param port The port number to listen on.
+     * @param ui   The server console UI interface for logging messages.
+     */
+	public BistroServer(int port, ChatIF ui) {
+		super(port);
+		this.orderRepo = new OrderRepository();
+		this.userRepo = new UserRepository();
+		this.userLogic = new UserManagement();
+		this.reservationLogic = new ReservationLogic();
+		this.tableRepo = new TableRepository();
+		this.hoursRepo = new OpeningHoursRepository();
+		this.ui = ui;
 
-    public BistroServer(int port, ChatIF ui) {
-        super(port);
-        this.orderRepo = new OrderRepository();
-        this.userRepo = new UserRepository();
-        this.userLogic = new UserManagement();
-        this.reservationLogic = new ReservationLogic(); 
-        this.tableRepo = new TableRepository();         
-        this.hoursRepo = new OpeningHoursRepository();  
-        this.ui = ui;
+		// Start background tasks
+		OrderScheduler scheduler = new OrderScheduler(orderRepo);
+		scheduler.start();
 
-        // Start background tasks
-        OrderScheduler scheduler = new OrderScheduler(orderRepo);
-        scheduler.start();
-        
-        log("[Server] Order Scheduler initialized and started.");
-    }
+		log("[Server] Order Scheduler initialized and started.");
+	}
+	
+	/**
+     * Helper method to log messages to both the system console and the server UI.
+     * @param s The string message to display.
+     */
 
-    private void log(String s) {
-        System.out.println(s);
-        if (ui != null) ui.display(s);
-    }
+	private void log(String s) {
+		System.out.println(s);
+		if (ui != null)
+			ui.display(s);
+	}
+	
+	/**
+     * method called when the server starts listening for connections.
+     */
 
-    @Override
-    protected void serverStarted() {
-        log("[Server] Bistro Server Listening on port " + getPort());
-    }
+	@Override
+	protected void serverStarted() {
+		log("[Server] Bistro Server Listening on port " + getPort());
+	}
+	
+	/**
+     * method called when the server stops listening for connections.
+     */
+	@Override
+	protected void serverStopped() {
+		log("[Server] Server stopped.");
+	}
 
-    @Override
-    protected void serverStopped() {
-        log("[Server] Server stopped.");
-    }
+	/**
+     * method called each time a new client connection is accepted.
+     * @param client The connection connected to the client.
+     */
+	@Override
+	protected void clientConnected(ConnectionToClient client) {
+		log("[Client Connected] IP: " + client.getInetAddress().getHostAddress());
+	}
+	
+	/**
+     * The main loop for handling client requests.
+     * Receives a {@link BistroMessage}, identifies the {@link ActionType}, 
+     * executes the relevant repository operation, and sends a response back to the client.
+     *
+     * @param msg    The message received from the client (expected to be BistroMessage).
+     * @param client The connection to the client.
+     */
 
-    @Override
-    protected void clientConnected(ConnectionToClient client) {
-        log("[Client Connected] IP: " + client.getInetAddress().getHostAddress());
-    }
-
-    @Override
+	@Override
     protected void handleMessageFromClient(Object msg, ConnectionToClient client) {
         log("-------------------------------------------");
         
@@ -162,9 +190,18 @@ public class BistroServer extends AbstractServer {
                         }
                     }
                     break;
+                case UPDATE_ORDER: 
+                		if (request.getData() instanceof Order) {
+                			Order updateOrder = (Order)request.getData();
+                			boolean updated = orderRepo.updateOrder(updateOrder.getOrderNumber(),updateOrder.getOrderDate(),updateOrder.getNumberOfGuests());               					  
+                			responseMsg = new BistroMessage(ActionType.UPDATE_ORDER, updated ? "OK" : "ERROR");
+                            log("[Update] Order " + updateOrder.getOrderNumber() + " order updated.");
+                        }
+                        break;
+             
 
-                //  Waitlist 
-                case ENTER_WAITLIST:
+                //  Waitlist 	
+        			case ENTER_WAITLIST:
                     if (request.getData() instanceof Order) {
                         Order walkIn = (Order) request.getData();
                         
@@ -194,7 +231,7 @@ public class BistroServer extends AbstractServer {
                     }
                     break;
 
-                case LEAVE_WAITLIST:
+        			case LEAVE_WAITLIST:
                     if (request.getData() instanceof Integer) {
                         int orderId = (Integer) request.getData();
                         orderRepo.updateOrderStatus(orderId, "CANCELLED");
@@ -246,26 +283,26 @@ public class BistroServer extends AbstractServer {
                     if (request.getData() instanceof Order) {
                         Order billOrder = (Order) request.getData();
                         
-                        // 1. Identify User Role (For 10% Discount)
+                        //Identify User Role (For 10% Discount)
                         User payer = null;
                         if (billOrder.getSubscriberId() > 0) {
                             // In a real app, we'd fetch the user. Here we simulate MEMBER role check.
                              payer = new User(0, "", "", "", "", Role.MEMBER, "", "", 0); 
                         }
                         
-                        // 2. Calculate Final Price
+                        // Calculate Final Price
                         // Assuming frontend sent base price in totalPrice, or calculate based on guests
                         double basePrice = billOrder.getNumberOfGuests() * 100.0; // Fixed Chef Meal logic
                         double finalPrice = userLogic.calculateFinalPrice(payer, basePrice);
                         
-                        // 3. Process in DB (Clear Table)
+                        //Process in DB (Clear Table)
                         boolean paid = orderRepo.processPayment(billOrder.getOrderNumber(), finalPrice);
                         
                         if (paid) {
                             log("[Payment] Order #" + billOrder.getOrderNumber() + " Paid: " + finalPrice + "NIS. Table Freed.");
                             responseMsg = new BistroMessage(ActionType.PAY_BILL, "OK");
                             
-                            // 4. Notify Waitlist - SIMULATION
+                            //Notify Waitlist 
                             Order nextPerson = orderRepo.getNextInWaitlist(billOrder.getNumberOfGuests());
                             if (nextPerson != null) {
                                 orderRepo.updateOrderStatus(nextPerson.getOrderNumber(), "NOTIFIED");
@@ -320,19 +357,24 @@ public class BistroServer extends AbstractServer {
                     log("[Error] Unsupported ActionType: " + type);
                     break;
             }
-        } catch (Exception e) {
+        }catch(
+
+	Exception e)
+	{
             log("[Exception] " + type + " failed: " + e.getMessage());
             e.printStackTrace(); // Helpful for debugging
             responseMsg = new BistroMessage(type, "ERROR: " + e.getMessage());
         }
 
-        if (responseMsg != null) {
-            try {
-                client.sendToClient(responseMsg);
-            } catch (IOException e) {
-                log("[Error] Could not send response: " + e.getMessage());
-            }
-        }
-        log("-------------------------------------------");
+	if(responseMsg!=null)
+	{
+		try {
+			client.sendToClient(responseMsg);
+		} catch (IOException e) {
+			log("[Error] Could not send response: " + e.getMessage());
+		}
+	}
+
+	log("-------------------------------------------");
     }
 }
