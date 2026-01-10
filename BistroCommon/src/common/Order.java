@@ -6,26 +6,26 @@ import java.sql.Timestamp;
 /**
  * Represents a dining order or reservation in the Bistro system.
  * Contains details about the schedule, guests, status, and associated table.
- * Used for Missions 2 (Reservation), 3 (Waitlist), 4 (Arrival), and 5 (Payment).
+ * Used for Reservation,Waitlist,Arrival,Payment
  */
 public class Order implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    // --- Database Identifiers ---
+    // Database Identifiers 
     private int orderNumber;
     private int confirmationCode;
     private int subscriberId;      // 0 if it is a casual customer (non-member)
     private Timestamp orderDate;   // Scheduled date and time of the visit
     private Timestamp dateOfPlacingOrder; // Timestamp of when the order was created
     
-    // --- Order Details ---
+    // Order Details 
     private int numberOfGuests;
     private String status;         // Enum values: PENDING, WAITING, NOTIFIED, SEATED, COMPLETED, CANCELLED
-    private Double totalPrice;     // Calculated bill amount (Mission 5)
-    private Integer assignedTableId; // Physical table ID, null if not currently seated (Mission 4)
+    private Double totalPrice;     // Calculated bill amount 
+    private Integer assignedTableId; // Physical table ID, null if not currently seated 
 
-    // --- Contact Info (For Casual & Members) ---
+    // Contact Info 
     private String phone;
     private String email;
     private String customerName;   // Optional display name (First + Last)
@@ -67,7 +67,7 @@ public class Order implements Serializable {
         this.dateOfPlacingOrder = new Timestamp(System.currentTimeMillis());
     }
 
-    // --- Getters and Setters ---
+    //  Getters and Setters 
 
     public int getOrderNumber() { 
         return orderNumber; 
