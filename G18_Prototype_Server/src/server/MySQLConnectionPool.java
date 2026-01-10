@@ -9,6 +9,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.Connection;
 
 /**
  * Singleton class that manages a pool of MySQL database connections.
@@ -21,7 +22,7 @@ public class MySQLConnectionPool {
     // Database Configuration
     private static String DB_URL = "jdbc:mysql://localhost:3306/bistro?serverTimezone=Asia/Jerusalem";    
     private static String USER = "root";
-    private static String PASS = "Danadana1";
+    private static String PASS;
 
     // Pool Configuration
     private static int MAX_POOL_SIZE = 10;       // Maximum number of connections in the pool
@@ -30,6 +31,16 @@ public class MySQLConnectionPool {
 
     private BlockingQueue<PooledConnection> pool; // Thread-safe queue to hold idle connections
     private ScheduledExecutorService cleanerService;
+    
+    
+    /**
+     * Sets the password used to connect to the MySQL database.
+     * This must be called before the first connection is attempted.
+     * * @param password The MySQL password provided by the user.
+     */
+    public static void setDBPassword(String password) {
+        PASS = password;
+    }
 
     /**
      * Private constructor to enforce Singleton pattern.
@@ -43,7 +54,6 @@ public class MySQLConnectionPool {
 
     /**
      * Retrieves the single instance of the connection pool.
-     * Thread-safe implementation.
      * * @return The singleton instance of MySQLConnectionPool.
      */
     public static synchronized MySQLConnectionPool getInstance() {
@@ -119,6 +129,10 @@ public class MySQLConnectionPool {
      * Checks all idle connections in the pool.
      * If a connection hasn't been used for longer than MAX_IDLE_TIME, it is closed and removed.
      */
+    public static void testConnection() throws SQLException {
+        Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
+        conn.close(); 
+    }
     private void checkIdleConnections() {
         if (pool.isEmpty()) return;
 

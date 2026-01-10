@@ -21,38 +21,15 @@ public class ServerPortFrameController implements ChatIF {
 
     @FXML private Button btnExit;
     @FXML private Button btnDone;
-    @FXML private TextField portxt;
+    @FXML private TextField passtxt;
     @FXML private TextArea logArea;
-
-    // Helper method to retrieve the port number from the text field
-    private String getport() {
-        return portxt.getText();
-    }
-
-    // Event handler for the "Start" button; validates input and starts the server
-    public void Done(ActionEvent event) {
-        String p = getport();
-
-        if (p == null || p.trim().isEmpty()) {
-            display("You must enter a port number");
-            return;
-        }
-
-        // Disable controls to prevent double-starting
-        btnDone.setDisable(true);
-        portxt.setDisable(true);
-
-        display("Starting server on port " + p + "...");
-
-        // Launches the server logic passing the port and this UI for logging
-        ServerUI.runServer(p, this);
-    }
-
-    /**
-     * Automatically called by JavaFX on startup; displays the local IP address.
-     */
+    @FXML private Button btnReset;
+    
     @FXML
     public void initialize() {
+    		if (btnReset != null) {
+            btnReset.setVisible(false);
+        }
         try {
             InetAddress ip = InetAddress.getLocalHost();
             String myIp = ip.getHostAddress();
@@ -63,6 +40,47 @@ public class ServerPortFrameController implements ChatIF {
             logArea.appendText("Error: Could not get IP address.\n");
         }
     }
+
+    // Event handler for the "Start" button; validates input and starts the server
+    public void Done(ActionEvent event) {
+    	String dbPass = passtxt.getText();
+
+        if (dbPass == null || dbPass.trim().isEmpty()) {
+            display("You must enter the DB password");
+            return;
+        }
+
+        // Disable controls to prevent double-starting
+        btnDone.setDisable(true);
+        passtxt.setDisable(true);
+        if(btnReset != null) btnReset.setVisible(false);
+
+        display("Connecting to DB...");
+        display("Starting server on port 5555...");
+
+        boolean success = ServerUI.runServer("5555", dbPass, this);
+       
+        if (!success) {
+        	if(btnReset != null)
+        		btnDone.setVisible(false);
+        		if(btnReset != null) btnReset.setVisible(true);
+            display("Server failed to start. Click Reset to try again.");
+        }
+    }
+        
+        public void resetControls(ActionEvent event) {
+        		System.out.println("Reset Button Pressed");
+        		btnDone.setVisible(true);
+        		btnDone.setDisable(false);
+        		passtxt.setDisable(false);
+            passtxt.clear();
+            
+            if(btnReset != null) btnReset.setVisible(false);
+            
+            display("Please try again ");
+    }
+
+    
 
     // Implementation of ChatIF to display messages in the log
     @Override

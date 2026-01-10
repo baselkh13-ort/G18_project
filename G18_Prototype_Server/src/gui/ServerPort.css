@@ -1,6 +1,7 @@
 /* Sets the global background color for the server window */
 .root {
     -fx-background-color: #ececec;
+    -fx-font-family: 'Arial';
 }
 
 /* Styles the 'Start' button with a green success theme */
@@ -20,6 +21,15 @@
     -fx-background-radius: 5;
     -fx-padding: 5 15 5 15;
 }
+
+#btnReset{
+    -fx-background-color: #FF9800; 
+    -fx-text-fill: white;          
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
 
 /* Uses a monospaced font for the log area to ensure readability */
 .text-area {
