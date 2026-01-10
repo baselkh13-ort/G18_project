@@ -1,4 +1,3 @@
-// Ilya Zeldner
 package server;
 
 import java.sql.DriverManager;
@@ -42,8 +41,11 @@ public class MySQLConnectionPool {
         System.out.println("[Pool] Initialized. Max Size: " + MAX_POOL_SIZE);
     }
 
-    // Returns the single instance of the connection pool.
-    
+    /**
+     * Retrieves the single instance of the connection pool.
+     * Thread-safe implementation.
+     * * @return The singleton instance of MySQLConnectionPool.
+     */
     public static synchronized MySQLConnectionPool getInstance() {
         if (instance == null) {
             instance = new MySQLConnectionPool();
@@ -52,8 +54,11 @@ public class MySQLConnectionPool {
     }
 
     
-    //Retrieves a connection for use.
-    
+    /**
+     * Retrieves a connection for use from the pool.
+     * If the pool is empty, a new physical connection is created.
+     * * @return A valid PooledConnection object.
+     */
     public PooledConnection getConnection() {
         PooledConnection pConn = pool.poll(); // Try to get from queue
         
@@ -67,10 +72,11 @@ public class MySQLConnectionPool {
         return pConn;
     }
 
-    
-     //Returns a connection back to the pool after use.
-     // If the pool is full, the connection is physically closed.
-     
+    /**
+     * Returns a connection back to the pool after use.
+     * If the pool is full, the connection is physically closed to save resources.
+     * * @param pConn The connection object to be released.
+     */
     public void releaseConnection(PooledConnection pConn) {
         if (pConn != null) {
             pConn.touch();
@@ -85,8 +91,10 @@ public class MySQLConnectionPool {
     }
 
     
-     // Establishes a new connection to the MySQL database.
-     
+    /**
+     * Establishes a new physical connection to the MySQL database.
+     * * @return A new PooledConnection wrapped around a JDBC Connection, or null if failed.
+     */
     private PooledConnection createNewConnection() {
         try {
             return new PooledConnection(DriverManager.getConnection(DB_URL, USER, PASS));
@@ -97,17 +105,20 @@ public class MySQLConnectionPool {
         }
     }
 
-    //Background Cleanup Logic 
-
-  
+    
+    // Background Cleanup Logic 
+    /**
+     * Starts a scheduled task that runs periodically to check for idle connections.
+     */
     private void startCleanupTimer() {
         cleanerService = Executors.newSingleThreadScheduledExecutor();
         cleanerService.scheduleAtFixedRate(this::checkIdleConnections, CHECK_INTERVAL, CHECK_INTERVAL, TimeUnit.SECONDS);
     }
 
-  
-     //Checks all idle connections in the pool.
-    
+    /**
+     * Checks all idle connections in the pool.
+     * If a connection hasn't been used for longer than MAX_IDLE_TIME, it is closed and removed.
+     */
     private void checkIdleConnections() {
         if (pool.isEmpty()) return;
 
