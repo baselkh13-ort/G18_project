@@ -12,15 +12,17 @@ public class Table implements Serializable {
 
     private int tableId;
     private int capacity;
+    private String status;
 
     /**
      * Constructs a Table object.
      * @param tableId The unique number of the table.
      * @param capacity The maximum number of guests it can seat.
      */
-    public Table(int tableId, int capacity) {
+    public Table(int tableId, int capacity ,String status) {
         this.tableId = tableId;
         this.capacity = capacity;
+        this.status = status;
     }
 
     /**
@@ -54,7 +56,14 @@ public class Table implements Serializable {
     public void setCapacity(int capacity) {
         this.capacity = capacity;
     }
-
+    
+    public String getStatus() { 
+		return status;
+	}
+    public void setStatus(String status) {
+    		this.status = status; 
+    	}
+    
     @Override
     public String toString() {
         return "Table [ID=" + tableId + ", Capacity=" + capacity + "]";

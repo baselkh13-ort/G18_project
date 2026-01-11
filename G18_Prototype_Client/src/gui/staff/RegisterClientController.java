@@ -6,7 +6,6 @@ import common.ActionType;
 import common.BistroMessage;
 import common.Role;
 import common.User;
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;

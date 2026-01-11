@@ -6,6 +6,7 @@ import client.ClientUI;
 import common.ActionType;
 import common.BistroMessage;
 import common.Order;
+import gui.customer.UserMenuController;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -41,7 +42,7 @@ public class OrderUpdateController {
         txtDate.setText(order.getOrderDate().toString());
         txtGuests.setText(String.valueOf(order.getNumberOfGuests()));
         txtConfirmationCode.setText(String.valueOf(order.getConfirmationCode()));
-        txtSubscriber.setText(String.valueOf(order.getMemberID()));
+        txtSubscriber.setText(String.valueOf(order.getMemberId()));
         txtDateOfPlacingOrder.setText(order.getDateOfPlacingOrder().toString());
 
         //Lock constant fields
@@ -82,11 +83,11 @@ public class OrderUpdateController {
             Date sqlDate = Date.valueOf(dateStr); 
             
             // Update the Logic Object
-            currentOrder.setOrderDate(sqlDate);
+            //currentOrder.setOrderDate(sqlDate);
             currentOrder.setNumberOfGuests(guests);
             
             // Create message and send to server
-            BistroMessage msg = new BistroMessage(ActionType.UPDATE_ORDER, currentOrder);
+            BistroMessage msg = new BistroMessage(ActionType.UPDATE_ORDER_STATUS, currentOrder);
             ClientUI.chat.accept(msg);
 
             // Show Success Message (Apply CSS class 'success')

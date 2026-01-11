@@ -1,6 +1,6 @@
-package gui;
+package gui.customer;
 
-import java.io.IOException;
+import java.net.URL;
 import java.util.ResourceBundle;
 
 import client.ChatClient;
@@ -9,11 +9,6 @@ import common.ActionType;
 import common.BistroMessage;
 import common.Role;
 import common.User;
-import gui.customer.MemberCardController;
-import logic.ScreenMode;
-import java.net.URL;
-
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -24,6 +19,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
+import logic.ScreenMode;
 
 /**
  * UserMenuController controls the main navigation menu for the Bistro
@@ -40,9 +36,7 @@ public class UserMenuController implements Initializable {
 	@FXML
 	private Label lblWelcome;
 
-	// visible only for a members
-	@FXML
-	private Button btnUpdate; // will be hide from not members
+	// visible only for a member
 	@FXML
 	private Button btnDigitalCard;
 	@FXML
@@ -71,25 +65,20 @@ public class UserMenuController implements Initializable {
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
 		User user = ChatClient.user;
-		if (lblWelcome == null || btnUpdate == null) {
+		if (lblWelcome == null) {
 			return;
 		}
-		if (user == null || user.getRole() != Role.MEMBER) {
-
+		
+		if (user == null || user.getRole() == Role.GUEST) {
 			// GUEST VIEW
 			lblWelcome.setText("Welcome, Guest");
 			// Hide member-exclusive buttons
-			btnUpdate.setVisible(false);
 			btnDigitalCard.setVisible(false);
-
-			if (btnDigitalCard != null) {
-				btnDigitalCard.setVisible(false);
-				btnDigitalCard.setManaged(false);
+			btnDigitalCard.setManaged(false);
 			}
 		
-		} else {
+		else {
 			lblWelcome.setText("Welcome," + user.getFirstName() + " " + user.getLastName());
-			
 		}
 	}
 
@@ -100,11 +89,11 @@ public class UserMenuController implements Initializable {
 	 * @throws Exception If loading the FXML fails.
 	 */
 	public void start(Stage primaryStage) throws Exception {
-		Parent root = FXMLLoader.load(getClass().getResource("/gui/UserMenu.fxml"));
+		Parent root = FXMLLoader.load(getClass().getResource("/gui/customer/UserMenu.fxml"));
 		Scene scene = new Scene(root);
 
 		// Link the CSS file
-		scene.getStylesheets().add(getClass().getResource("/gui/UserMenu.css").toExternalForm());
+		scene.getStylesheets().add(getClass().getResource("/gui/customer/UserMenu.css").toExternalForm());
 
 		primaryStage.setTitle("Main Menu");
 		primaryStage.setScene(scene);
@@ -131,11 +120,11 @@ public class UserMenuController implements Initializable {
 
 		// Load the Order Creation screen
 		Stage primaryStage = new Stage();
-		Parent root = FXMLLoader.load(getClass().getResource("/gui/OrderCreation.fxml"));
+		Parent root = FXMLLoader.load(getClass().getResource("/gui/utils/OrderCreation.fxml"));
 		Scene scene = new Scene(root);
 
 		// Load CSS file
-		scene.getStylesheets().add(getClass().getResource("/gui/OrderCreation.css").toExternalForm());
+		scene.getStylesheets().add(getClass().getResource("/gui/utils/OrderCreation.css").toExternalForm());
 
 		primaryStage.setTitle("Bistro - Book a Table");
 		primaryStage.setScene(scene);
@@ -159,43 +148,11 @@ public class UserMenuController implements Initializable {
 		// Hide current window
 		((Node) event.getSource()).getScene().getWindow().hide();
 		Stage primaryStage = new Stage();
-		Parent root = FXMLLoader.load(getClass().getResource("/gui/InsertOrderNumber.fxml"));
+		Parent root = FXMLLoader.load(getClass().getResource("/gui/customer/CancelOrder.fxml"));
 		Scene scene = new Scene(root);
-		scene.getStylesheets().add(getClass().getResource("/gui/InsertOrderNumber.css").toExternalForm());
+		scene.getStylesheets().add(getClass().getResource("/gui/customer/CancelOrder.css").toExternalForm());
 
 		primaryStage.setTitle("Bistro - Cancel Order");
-		primaryStage.setScene(scene);
-		primaryStage.show();
-	}
-
-	/**
-	 * Handles the "Update Order" action (Members only).
-	 * <p>
-	 * Sets the global screen mode to {@link ScreenMode#UPDATE} and navigates to the
-	 * "Insert Order Number" screen.
-	 * </p>
-	 *
-	 * @param event The ActionEvent triggered by clicking the button.
-	 * @throws Exception If the FXML file cannot be loaded.
-	 */
-	@FXML
-	public void clickUpdate(ActionEvent event) throws Exception {
-		System.out.println("Selected: Update Order");
-
-		// CRITICAL STEP: Set the global mode to UPDATE
-		// This tells the next screens that editing is allowed.
-		ClientUI.currentMode = ScreenMode.UPDATE;
-
-		((Node) event.getSource()).getScene().getWindow().hide(); // Close Menu
-
-		Stage primaryStage = new Stage();
-		Parent root = FXMLLoader.load(getClass().getResource("/gui/InsertOrderNumber.fxml"));
-		Scene scene = new Scene(root);
-
-		// Apply CSS
-		scene.getStylesheets().add(getClass().getResource("/gui/InsertOrderNumber.css").toExternalForm());
-
-		primaryStage.setTitle("Input Order Number");
 		primaryStage.setScene(scene);
 		primaryStage.show();
 	}

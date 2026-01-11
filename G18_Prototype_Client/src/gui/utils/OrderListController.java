@@ -1,4 +1,4 @@
-package gui;
+package gui.utils;
 
 import java.net.URL;
 import java.sql.Date;
@@ -6,6 +6,7 @@ import java.util.ResourceBundle;
 
 import client.ChatClient;
 import common.Order;
+import gui.staff.WorkerMenuController;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -68,7 +69,7 @@ public class OrderListController implements Initializable {
             
             // Open the User Menu
             Stage primaryStage = new Stage();
-            UserMenuController menu = new UserMenuController();
+            WorkerMenuController menu = new WorkerMenuController();
             menu.start(primaryStage); 
             
         } catch (Exception e) {

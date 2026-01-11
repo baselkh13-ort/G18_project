@@ -5,7 +5,7 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane prefHeight="160.0" prefWidth="250.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="gui.ClientConnectFormController">
+<AnchorPane prefHeight="160.0" prefWidth="250.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="gui.utils.ClientConnectFormController">
    <children>
       <Label layoutX="20.0" layoutY="20.0" text="Enter Server IP:" />
       <TextField fx:id="txtServerIP" layoutX="20.0" layoutY="45.0" prefWidth="210.0" text="Please enter an server IP address" />

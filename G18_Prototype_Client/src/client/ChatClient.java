@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import common.ActionType;
 import common.BistroMessage;
 import common.ChatIF;
+import common.OpeningHour;
 import common.Order;
 import common.User;
 import ocsf.client.AbstractClient;
@@ -21,10 +22,13 @@ public class ChatClient extends AbstractClient
   ChatIF clientUI; 
   // Initialize the list to prevent NullPointerException
   public static ArrayList<Order> listOfOrders = new ArrayList<>();
+  public static ArrayList<OpeningHour> openingHours = new ArrayList<>();
+  public static ArrayList<String> availableTimeSlots = new ArrayList<>();
   public static Order order = null;
   public static boolean awaitResponse = false;
   public static User user = null;
   public static User registeredUser = null;
+  public static boolean operationSuccess = false; // Flag for boolean responses (Cancel)
 
   //Constructors ****************************************************
   
@@ -42,12 +46,12 @@ public class ChatClient extends AbstractClient
    *
    * @param msg The message from the server.
    */
-  public void handleMessageFromServer(Object msg) 
-  {
+  public void handleMessageFromServer(Object msg) {
       System.out.println("--> handleMessageFromServer");
-      
+      order = null;
       // Release the waiting flag
       awaitResponse = false;
+      operationSuccess = false;
 
       // Safety check
       if (msg == null) {
@@ -65,8 +69,18 @@ public class ChatClient extends AbstractClient
 
           // Case A: Received an order list (for View All)
           if (data instanceof ArrayList) {
-              System.out.println("Got ArrayList inside BistroMessage");
-              listOfOrders = (ArrayList<Order>) data;
+        	  if (type == ActionType.GET_AVAILABLE_TIMES) { 
+                  System.out.println("Got available time slots from server");
+                  availableTimeSlots = (ArrayList<String>) data;
+             }
+        	  else if (type == ActionType.GET_OPENING_HOURS) { 
+                  System.out.println("Got OpeningHours list");
+                  openingHours = (ArrayList<OpeningHour>) data;
+              } 
+              else {
+                  System.out.println("Got Orders list");
+                  listOfOrders = (ArrayList<Order>) data;
+              }
           }
           
           // Case B: Received a single order (for Update order)
@@ -81,30 +95,28 @@ public class ChatClient extends AbstractClient
                   System.out.println("User logged in.");
                   user = (User) data;
               } 
-              else if (type == ActionType.REGISTER_CLIENT) { // או ActionType.REGISTRATION_SUCCESS
+              else if (type == ActionType.REGISTER_CLEINT) {
                   System.out.println("New client registered.");
                   registeredUser = (User) data;
               }
           }
           
-          //Case D: Received an error message or text ---
+          //Case D: Received an error message or text
           else if (data instanceof String) {
-              System.out.println("Got String message: " + data);
-              // If it's an error, reset variables so screens know nothing returned
-              if (data.toString().contains("Error") || data.toString().contains("not found")) {
-                  order = null;
-                  listOfOrders.clear(); // Clear the list
+        	  String msgString = (String) data;
+              System.out.println("Got String message: " + msgString);
+              if (msgString.equals("Success")) {
+                  operationSuccess = true;
               }
+              // If it's an error, reset variables so screens know nothing returned
+              else if (data.toString().contains("Error") || data.toString().contains("not found")) {
+                  order = null;
+                  listOfOrders.clear(); // Clear the list 
+              }
+          
           }
-          else if (data == null) {
-              System.out.println("Data inside BistroMessage is NULL!");
-              order = null;
-          }
-      } else {
-    	  System.out.println("WARNING: Received unknown object from server!");
       }
   }
-
   /**
    * This method handles all data coming from the UI            
    *

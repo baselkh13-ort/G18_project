@@ -1,4 +1,4 @@
-package gui;
+package gui.utils;
 
 import client.ClientController;
 import client.ClientUI;
@@ -63,9 +63,9 @@ public class ClientConnectFormController {
     }
     
     public void start(Stage primaryStage) throws Exception {    
-        Parent root = FXMLLoader.load(getClass().getResource("/gui/ClientConnectForm.fxml"));
+        Parent root = FXMLLoader.load(getClass().getResource("/gui/utils/ClientConnectForm.fxml"));
         Scene scene = new Scene(root);
-        scene.getStylesheets().add(getClass().getResource("/gui/ClientConnectForm.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/gui/utils/ClientConnectForm.css").toExternalForm());
         
         primaryStage.setTitle("Client Connection");
         primaryStage.setScene(scene);

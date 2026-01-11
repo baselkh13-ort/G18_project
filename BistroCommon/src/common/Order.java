@@ -42,9 +42,12 @@ public class Order implements Serializable {
     private Integer assignedTableId;  /**Physical table ID, null if not currently seated */
 
     // Contact Info 
-    private String firstName;
+    private String CustomerName;
     private String phone;
     private String email;
+    
+    public Order() {
+    }
 
     /**
 Full Constructor - Used primarily by the Server when retrieving existing data from the DB.
@@ -79,10 +82,10 @@ Full Constructor - Used primarily by the Server when retrieving existing data fr
      * @param phone          Contact phone number.
      * @param customerName   Name of the customer.
      */
-    public Order(Timestamp orderDate, int numberOfGuests,String firstName, String phone, String email) {
+    public Order(Timestamp orderDate, int numberOfGuests,String CustomerName, String phone, String email) {
     	this(0, orderDate, numberOfGuests, 0, 0, new Timestamp(System.currentTimeMillis()));
     	
-    	this.firstName = firstName;
+    		this.CustomerName = CustomerName;
         this.phone = phone;
         this.email = email;
         this.status = "PENDING"; // Default status for new orders    
@@ -162,12 +165,12 @@ Full Constructor - Used primarily by the Server when retrieving existing data fr
         this.assignedTableId = assignedTableId; 
     }
     
-    public String getFirstName() { 
-        return firstName; 
+    public String getCustomerName() { 
+        return CustomerName; 
     }
 
-    public void setFirstNam(String firstName) { 
-        this.firstName = firstName; 
+    public void setCustomerName(String CustomerName) { 
+        this.CustomerName = CustomerName; 
     }
     public String getPhone() { 
         return phone; 

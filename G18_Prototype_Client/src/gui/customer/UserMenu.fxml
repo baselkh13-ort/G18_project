@@ -9,7 +9,7 @@
 
 <AnchorPane prefHeight="450.0" prefWidth="350.0"
 	xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-	fx:controller="gui.UserMenuController" stylesheets="@UserMenu.css"
+	fx:controller="gui.customer.UserMenuController" stylesheets="@UserMenu.css"
 	styleClass="root">
 
 	<children>
@@ -34,10 +34,6 @@
 				<Button fx:id="btnDigitalCard" mnemonicParsing="false"
 					onAction="#openDigitalCard" prefHeight="50.0" prefWidth="200.0"
 					styleClass="card-button" text="My Member Card" />
-					
-				<Button fx:id="btnUpdate" mnemonicParsing="false"
-					onAction="#clickUpdate" prefHeight="50.0" prefWidth="200.0"
-					styleClass="menu-button" text="Update Order" />
 
 				<Button fx:id="btnExit" mnemonicParsing="false"
 					onAction="#getExitBtn" prefHeight="50.0" prefWidth="200.0"

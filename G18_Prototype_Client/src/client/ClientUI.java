@@ -1,9 +1,9 @@
 package client;
+import gui.utils.ClientConnectFormController;
 import javafx.application.Application;
 
 import javafx.stage.Stage;
 import logic.ScreenMode;
-import gui.ClientConnectFormController;
 
 public class ClientUI extends Application {
 	// Reference to the ClientController (only one instance allowed)

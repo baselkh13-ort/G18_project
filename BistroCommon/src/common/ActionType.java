@@ -8,9 +8,13 @@ public enum ActionType {
 	GET_USER_HISTORY, //Getting the user history from DB
 	UPDATE_USER_INFO, // Update the contact info
    
+	GET_ORDER_BY_CODE,
+    CANCEL_ORDER,
+	GET_AVAILABLE_TIMES,
 	GET_ALL_MEMBERS,
     CREATE_ORDER,
     ORDER_ALTERNATIVES,
+    SERVER_NOTIFICATION,
     
     ENTER_WAITLIST,
     LEAVE_WAITLIST,
@@ -22,10 +26,11 @@ public enum ActionType {
     PAY_BILL,
     
     GET_ALL_ORDERS,
-    ADD_TABLE,
     
+    ADD_TABLE,
     REMOVE_TABLE,           
-    UPDATE_TABLE,           
+    UPDATE_TABLE,
+    
     GET_OPENING_HOURS,      
     UPDATE_OPENING_HOURS,   
 
