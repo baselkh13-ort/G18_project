@@ -1,0 +1,69 @@
+/* Main Background */
+.root {
+    -fx-background-color: #f4f6f8;
+}
+
+/* Title Style */
+.title-label {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+    -fx-font-family: "Segoe UI";
+}
+
+/* Instruction Text Style */
+.instruction-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #555555;
+    -fx-font-family: "Segoe UI";
+}
+
+/* Input Field Style */
+.text-field {
+    -fx-font-size: 14px;
+    -fx-padding: 10px;
+    -fx-background-radius: 5px;
+    -fx-border-radius: 5px;
+    -fx-border-color: #bdc3c7;
+    -fx-background-color: white;
+}
+
+.text-field:focused {
+    -fx-border-color: #3498db;
+    -fx-background-color: #ffffff;
+}
+
+/* Action Button (Confirm Exit) - Red alert style */
+.action-button {
+    -fx-background-color: #e74c3c; /* Red */
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+    -fx-background-radius: 5px;
+    -fx-padding: 10px;
+}
+
+.action-button:hover {
+    -fx-background-color: #c0392b; /* Darker Red */
+}
+
+/* Back Button - Minimalist style */
+.back-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #7f8c8d;
+    -fx-underline: true;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+}
+
+.back-button:hover {
+    -fx-text-fill: #2c3e50;
+}
+
+/* Error Message Style */
+.error-label {
+    -fx-text-fill: #c0392b;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
