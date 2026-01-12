@@ -38,7 +38,7 @@ public class Order implements Serializable {
      * Contains: PENDING, APPROVED, NOTIFIED, SEATED, COMPLETED, CANCELLED.
      */
     private String status;         
-    private Double totalPrice;     /** The final bill amount */
+    private double totalPrice;     /** The final bill amount */
     private Integer assignedTableId;  /**Physical table ID, null if not currently seated */
 
     // Contact Info 
@@ -149,11 +149,11 @@ Full Constructor - Used primarily by the Server when retrieving existing data fr
         this.status = status; 
     }
 
-    public Double getTotalPrice() { 
+    public double getTotalPrice() { 
         return totalPrice; 
     }
 
-    public void setTotalPrice(Double totalPrice) { 
+    public void setTotalPrice(double totalPrice) { 
         this.totalPrice = totalPrice; 
     }
 
