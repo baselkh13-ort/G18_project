@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="350.0" prefWidth="400.0" 
+            xmlns="http://javafx.com/javafx/8" 
+            xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="gui.customer.CancelOrderController"
+            styleClass="root">
+
+   <children>
+      <Label fx:id="lblTitle" layoutX="30.0" layoutY="30.0" text="Cancel Order" styleClass="title-label" />
+      
+      <Label fx:id="lblInstruction" layoutX="30.0" layoutY="70.0" text="Enter Confirmation Code:" styleClass="instruction-label"/>
+      
+      <VBox layoutX="30.0" layoutY="100.0" spacing="15.0" prefWidth="340.0">
+         
+         <TextField fx:id="txtConfirmationCode" promptText="Confirmation Code (e.g. 1234)" styleClass="text-field" />
+         
+         <VBox fx:id="vboxIdent" spacing="5.0">
+             <Label text="Identification (Phone or Email):" styleClass="small-label"/>
+             <TextField fx:id="txtIdentification" promptText="05X-XXXXXXX / email@example.com" styleClass="text-field" />
+         </VBox>
+
+         <VBox spacing="10.0" alignment="CENTER">
+             <Button fx:id="btnAction" mnemonicParsing="false" onAction="#clickCancel" prefWidth="340.0" text="Cancel Order" styleClass="action-button" />
+             <Label fx:id="lblError" alignment="CENTER" textFill="RED" wrapText="true" styleClass="error-label"/>
+             <Button fx:id="btnBack" mnemonicParsing="false" onAction="#clickBack" text="Back to Menu" styleClass="back-button" />
+         </VBox>
+         
+      </VBox>
+   </children>
+</AnchorPane>

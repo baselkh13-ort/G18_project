@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.geometry.Insets?>
+
+<VBox alignment="CENTER" spacing="15.0"
+	xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+	fx:controller="gui.common.LoginController"
+	stylesheets="@Login.css" styleClass="root-vbox">
+	
+	<padding>
+		<Insets top="30" right="40" bottom="30" left="40" />
+	</padding>
+
+	<Label text="Welcome to Bistro" styleClass="title-label" />
+	
+	<Label text="Please Login" styleClass="subtitle-label" />
+	
+	<TextField fx:id="txtUsername" promptText="Username"
+		maxWidth="280" styleClass="input-field" />
+		
+	<PasswordField fx:id="txtPassword" promptText="Password"
+		maxWidth="280" styleClass="input-field" />
+		
+	<Label fx:id="lblError" text="" styleClass="error-label" />
+	
+	<Button text="Login" fx:id="btnLogin" onAction="#getLoginBtn"
+		maxWidth="280" defaultButton="true" styleClass="primary-button" />
+	
+	<Label text="OR" styleClass="separator-label"/>
+	
+	<Button text="Continue as Guest" fx:id="btnGuest"
+		onAction="#continueAsGuest" maxWidth="280" styleClass="secondary-button" />
+	
+	<Button text="Exit" onAction="#getExitBtn" maxWidth="280"
+		styleClass="exit-button" />
+
+</VBox>

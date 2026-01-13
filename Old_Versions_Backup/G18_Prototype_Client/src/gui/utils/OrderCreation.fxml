@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+
+<AnchorPane prefHeight="650.0" prefWidth="450.0" 
+            xmlns="http://javafx.com/javafx/8" 
+            xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="gui.utils.OrderCreationController"
+            styleClass="root-container" stylesheets="@OrderCreation.css">
+
+   <children>
+      <VBox layoutX="50.0" layoutY="80.0" spacing="15.0" prefWidth="350.0">
+               <VBox spacing="5.0">
+             <Label text="Number of Guests:" styleClass="field-label"/>
+             <TextField fx:id="txtGuests" promptText="e.g. 4"/>
+         </VBox>
+         
+         <VBox spacing="5.0">
+            <Label text="Select Date:" styleClass="field-label"/>
+            <DatePicker fx:id="dpDate" prefWidth="350.0" promptText="Choose a date"/>
+         </VBox>
+
+         <VBox spacing="5.0">
+            <Label text="Select Time (30 min intervals):" styleClass="field-label"/>
+            <ComboBox fx:id="cmbTime" prefWidth="350.0" promptText="Select time"/>
+         </VBox>
+
+
+         <VBox fx:id="vboxCasualDetails" spacing="10.0" visible="false" managed="false" 
+               styleClass="guest-container">
+            <Label text="Guest Details" style="-fx-font-weight: bold; -fx-text-fill: #555;"/>
+            
+            <TextField fx:id="txtName" promptText="First Name"/>
+            <TextField fx:id="txtPhone" promptText="Phone Number (05...)"/>
+            <TextField fx:id="txtEmail" promptText="Email Address"/>
+         </VBox>
+
+         <Label fx:id="lblStatus" text="" wrapText="true" styleClass="error-label" prefWidth="350.0" alignment="CENTER"/>
+         
+         <HBox spacing="20.0" alignment="CENTER" style="-fx-padding: 10 0 0 0;">
+             <Button fx:id="btnBack" text="Back" onAction="#clickBack" styleClass="exit-button" prefWidth="100.0"/>
+<Button fx:id="btnSubmit" text="Book Table" onAction="#clickSubmit" styleClass="create-button" prefWidth="180.0"/>
+         </HBox>
+
+      </VBox>
+   </children>
+</AnchorPane>

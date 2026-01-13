@@ -1,0 +1,63 @@
+
+.root {
+    -fx-background-color: #f0f4f7;
+}
+
+.title-label {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.instruction-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #34495e;
+}
+
+.small-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #7f8c8d;
+}
+
+.text-field {
+    -fx-background-radius: 5;
+    -fx-border-color: #bdc3c7;
+    -fx-border-radius: 5;
+    -fx-padding: 8;
+    -fx-font-size: 14px;
+}
+
+.text-field:focused {
+    -fx-border-color: #3498db;
+    -fx-background-color: white;
+}
+
+.action-button {
+    -fx-background-color: #e74c3c; /* Red */
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+    -fx-font-size: 14px;
+    -fx-padding: 10;
+}
+
+.action-button:hover {
+    -fx-background-color: #c0392b; /* Darker red */
+}
+
+.back-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #7f8c8d;
+    -fx-underline: true;
+    -fx-cursor: hand;
+}
+
+.back-button:hover {
+    -fx-text-fill: #2c3e50;
+}
+
+.error-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}

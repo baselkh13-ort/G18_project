@@ -1,0 +1,94 @@
+.root {
+    -fx-background-color: #f4f6f8;
+    -fx-font-family: "Segoe UI", sans-serif;
+}
+
+.root-container {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);
+}
+
+.main-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 2, 0, 0, 1);
+}
+
+/* "Select Date, Guests..." */
+.field-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #34495e;
+}
+
+/* TextField, ComboBox, DatePicker */
+.text-field, .combo-box, .date-picker {
+    -fx-font-size: 14px;
+    -fx-background-radius: 5;
+    -fx-border-color: #bdc3c7;
+    -fx-border-radius: 5;
+    -fx-background-color: white;
+    -fx-padding: 5;
+}
+
+.text-field:focused, .combo-box:focused, .date-picker:focused {
+    -fx-border-color: #3498db;
+    -fx-background-color: #fbfbfb;
+}
+
+.guest-container {
+    -fx-background-color: #fdfdfd;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-padding: 10;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 3, 0, 0, 0);
+}
+
+.error-label {
+    -fx-text-fill: #e74c3c; /* red */
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+
+
+.create-button {
+    -fx-background-color: #27ae60;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);
+}
+
+.create-button:hover {
+    -fx-background-color: #219150;
+    -fx-scale-x: 1.02;
+}
+
+.create-button:pressed {
+    -fx-background-color: #1e8449;
+}
+
+.create-button:disabled {
+    -fx-background-color: #bdc3c7;
+    -fx-text-fill: #7f8c8d;
+    -fx-opacity: 0.8;
+}
+
+.exit-button {
+    -fx-background-color: white;
+    -fx-text-fill: #7f8c8d;
+    -fx-border-color: #95a5a6;
+    -fx-border-radius: 5;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+}
+
+.exit-button:hover {
+    -fx-background-color: #ecf0f1;
+    -fx-text-fill: #2c3e50;
+}
