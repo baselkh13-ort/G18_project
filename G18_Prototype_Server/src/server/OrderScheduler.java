@@ -2,6 +2,11 @@ package server;
 
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.ArrayList;
+import ocsf.server.AbstractServer; 
+import common.ActionType;
+import common.BistroMessage;
+import common.ChatIF;
 
 /**
  * Background scheduler that runs periodically to handle automated tasks.
@@ -14,14 +19,18 @@ public class OrderScheduler {
 
     private final OrderRepository orderRepo;
     private final Timer timer;
+    private final ChatIF ui;
+    private final AbstractServer server;
 
     /**
      * Initializes the scheduler with the order repository.
      * @param orderRepo The repository used to perform database updates.
      */
-    public OrderScheduler(OrderRepository orderRepo) {
+    public OrderScheduler(OrderRepository orderRepo, ChatIF ui, AbstractServer server) {
         this.orderRepo = orderRepo;
-        this.timer = new Timer(true); // true means it runs as a daemon thread
+        this.ui = ui;
+        this.server = server; 
+        this.timer = new Timer(true);
     }
 
     /**
@@ -37,7 +46,7 @@ public class OrderScheduler {
                     System.err.println("[Scheduler Error] " + e.getMessage());
                 }
             }
-        }, 5000, 60000); // Wait 5 seconds to start, then run every 60 seconds
+        }, 5000, 10000); // Wait 5 seconds to start, then run every 10 seconds
     }
 
     /**
@@ -46,17 +55,27 @@ public class OrderScheduler {
     private void processAutomatedTasks() {
         System.out.println("[Scheduler] Running automated time checks...");
 
-        // Task 1: Auto-cancel orders if the customer is 15 minutes late
+        // Auto-cancel orders if the customer is 15 minutes late
         int canceledCount = orderRepo.cancelLateOrders(15);
         if (canceledCount > 0) {
-            System.out.println("[Scheduler] " + canceledCount + " late orders were automatically canceled.");
+        		String cancelMsg = "[Scheduler] " + canceledCount + " late orders were automatically canceled.";
+            System.out.println(cancelMsg);
+            if (ui != null) {
+            		ui.display(cancelMsg);
+            }
         }
 
-        // Task 2: Simulation of sending reminders (2 hours before)
-        // This will print to the console which customers should receive a notification
-        orderRepo.processReminders();
+        ArrayList<String> reminders = orderRepo.getRemindersList();
+        for (String msg : reminders) {
+            System.out.println("[Scheduler] Sending Reminder: " + msg);
+            server.sendToAllClients(new BistroMessage(ActionType.SERVER_NOTIFICATION, msg));
+        }
 
-        // Task 3: Simulation of sending invoices (2 hours after seating)
-        orderRepo.processAutomaticInvoices();
+        
+        ArrayList<String> invoices = orderRepo.getAutomaticInvoices();
+        for (String msg : invoices) {
+            System.out.println("[Scheduler] Sending Invoice: " + msg);
+            server.sendToAllClients(new BistroMessage(ActionType.SERVER_NOTIFICATION, msg));
+        }
     }
 }

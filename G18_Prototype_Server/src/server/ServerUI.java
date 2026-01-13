@@ -3,12 +3,14 @@ package server;
 import javafx.application.Application;
 import javafx.stage.Stage;
 import gui.ServerPortFrameController;
+import common.ChatIF;
 
-
- //Main entry point for the Server application using JavaFX.
+ /**
+	* Entry point for the Server Application.
+	* Handles the initialization of the GUI and starting the server logic.
+    */
  
 public class ServerUI extends Application {
-	final public static int DEFAULT_PORT = 5555;
 	
 	// Launches the JavaFX application
 	public static void main( String args[] ) throws Exception
@@ -25,11 +27,16 @@ public class ServerUI extends Application {
 	}
 	
 	/**
-	 * Static method to initialize and start the BistroServer.
-	 */
-	public static void runServer(String p ,common.ChatIF ui)
+     * Initializes and starts the BistroServer.
+     * Configures the database connection password before starting the server.
+     * * @param p          The port number as a string.
+     * @param dbPassword The password for the MySQL database connection.
+     * @param ui         The UI interface for logging messages.
+     */
+	public static boolean runServer(String p, String dbPassword ,ChatIF ui)
 	{
-		 int port = DEFAULT_PORT; //Port to listen on
+		 MySQLConnectionPool.setDBPassword(dbPassword);
+		 int port = 0; 
 
 	        try
 	        {
@@ -40,19 +47,28 @@ public class ServerUI extends Application {
 	        catch(Throwable t)
 	        {
 	        		if (ui != null) ui.display("ERROR - Could not connect!");
+	        		return false;
 	        }
-	    	
+	        try {
+				MySQLConnectionPool.testConnection(); 
+			} catch (Exception e) {
+				if (ui != null) ui.display("Error: DB Connection Failed! Check Password.");
+				return false; 
+			}
 	        // Creates a new instance of the server logic with port and UI
-	        BistroServer sv = new BistroServer(port ,ui);
+			BistroServer sv = new BistroServer(port, ui);
+
 	        
 	        try 
 	        {
 	          // Starts listening for incoming client connections
 	          sv.listen(); 
+	          return true;
 	        } 
 	        catch (Exception ex) 
 	        {
-	        	if (ui != null) ui.display("ERROR - Could not listen for clients!");
+	        		if (ui != null) ui.display("ERROR - Could not listen for clients!");
+	        		return false;
 	        }
 	}
 }

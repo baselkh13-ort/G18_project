@@ -155,8 +155,10 @@ public class UserRepository {
      * @return The auto-generated user_id, or -1 on failure.
      */
     public int registerUser(User u) {
-        String sql = "INSERT INTO users (username, password, first_name, last_name, role, phone, email, member_code) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    		int generatedMemberCode = (int)(Math.random() * 900000) + 100000;
+        u.setMemberCode(generatedMemberCode);
+        String sql = "INSERT INTO users (user_id,username, password, first_name, last_name, role, phone, email, member_code) " +
+                     "VALUES (?,?, ?, ?, ?, ?, ?, ?, ?)";
         
         PooledConnection pConn = null;
         try {
@@ -165,23 +167,20 @@ public class UserRepository {
 
             Connection conn = pConn.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            
-            ps.setString(1, u.getUsername());
-            ps.setString(2, u.getPassword());
-            ps.setString(3, u.getFirstName());
-            ps.setString(4, u.getLastName());
-            ps.setString(5, u.getRole().toString());
-            ps.setString(6, u.getPhone());
-            ps.setString(7, u.getEmail());
-            ps.setInt(8, u.getMemberCode()); // Storing the integer code
+            ps.setInt(1, u.getUserId());
+            ps.setString(2, u.getUsername());
+            ps.setString(3, u.getPassword());
+            ps.setString(4, u.getFirstName());
+            ps.setString(5, u.getLastName());
+            ps.setString(6, u.getRole().toString());
+            ps.setString(7, u.getPhone());
+            ps.setString(8, u.getEmail());
+            ps.setInt(9, generatedMemberCode); // Storing the integer code
 
             int affectedRows = ps.executeUpdate();
 
             if (affectedRows > 0) {
-                ResultSet rs = ps.getGeneratedKeys();
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
+            		return generatedMemberCode;
             }
         } catch (SQLException e) {
             e.printStackTrace();
