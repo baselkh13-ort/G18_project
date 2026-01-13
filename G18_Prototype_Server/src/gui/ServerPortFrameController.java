@@ -13,6 +13,10 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import java.net.InetAddress;
 import server.ServerUI;
+import javafx.scene.control.ListView;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import java.util.Iterator;
 
 /**
  * Controller class for the Server GUI, handling port configuration and logging.
@@ -21,38 +25,19 @@ public class ServerPortFrameController implements ChatIF {
 
     @FXML private Button btnExit;
     @FXML private Button btnDone;
-    @FXML private TextField portxt;
+    @FXML private TextField passtxt;
     @FXML private TextArea logArea;
-
-    // Helper method to retrieve the port number from the text field
-    private String getport() {
-        return portxt.getText();
-    }
-
-    // Event handler for the "Start" button; validates input and starts the server
-    public void Done(ActionEvent event) {
-        String p = getport();
-
-        if (p == null || p.trim().isEmpty()) {
-            display("You must enter a port number");
-            return;
-        }
-
-        // Disable controls to prevent double-starting
-        btnDone.setDisable(true);
-        portxt.setDisable(true);
-
-        display("Starting server on port " + p + "...");
-
-        // Launches the server logic passing the port and this UI for logging
-        ServerUI.runServer(p, this);
-    }
-
-    /**
-     * Automatically called by JavaFX on startup; displays the local IP address.
-     */
+    @FXML private Button btnReset;
+    
+    @FXML private ListView<String> listClients;
+    private ObservableList<String> clientListItems = FXCollections.observableArrayList();
+    
     @FXML
     public void initialize() {
+    		if (btnReset != null) {
+            btnReset.setVisible(false);
+        }
+    		listClients.setItems(clientListItems);
         try {
             InetAddress ip = InetAddress.getLocalHost();
             String myIp = ip.getHostAddress();
@@ -61,8 +46,61 @@ public class ServerPortFrameController implements ChatIF {
          
         } catch (Exception e) {
             logArea.appendText("Error: Could not get IP address.\n");
+        } 
+    }
+
+    // Event handler for the "Start" button; validates input and starts the server
+    public void Done(ActionEvent event) {
+    	String dbPass = passtxt.getText();
+
+        if (dbPass == null || dbPass.trim().isEmpty()) {
+            display("You must enter the DB password");
+            return;
+        }
+
+        // Disable controls to prevent double-starting
+        btnDone.setDisable(true);
+        passtxt.setDisable(true);
+        if(btnReset != null) btnReset.setVisible(false);
+
+        display("Connecting to DB...");
+        display("Starting server on port 5555...");
+
+        boolean success = ServerUI.runServer("5555", dbPass, this);
+       
+        if (!success) {
+        	if(btnReset != null)
+        		btnDone.setVisible(false);
+        		if(btnReset != null) btnReset.setVisible(true);
+            display("Server failed to start. Click Reset to try again.");
         }
     }
+        
+        public void resetControls(ActionEvent event) {
+        		System.out.println("Reset Button Pressed");
+        		btnDone.setVisible(true);
+        		btnDone.setDisable(false);
+        		passtxt.setDisable(false);
+            passtxt.clear();
+            
+            if(btnReset != null) btnReset.setVisible(false);
+            
+            display("Please try again ");
+    }
+        public void updateClientList(String ip, String host, String status) {
+            Platform.runLater(() -> {
+            	Iterator<String> iterator = clientListItems.iterator();
+            	while (iterator.hasNext()) {
+            	    String row = iterator.next();
+            	    if (row.contains(ip)) {
+            	        iterator.remove();
+            	    }
+            	}            	
+            	String clientInfo = String.format("IP: %s | Host: %s | Status: %s", ip, host, status);
+            	clientListItems.add(clientInfo);
+            });
+        }    
+    
 
     // Implementation of ChatIF to display messages in the log
     @Override
