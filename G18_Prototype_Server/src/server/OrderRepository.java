@@ -71,6 +71,22 @@ public class OrderRepository {
         }
         return -1;
     }
+    public boolean isCodeExists(int code) {
+        String sql = "SELECT confirmation_code FROM bistro.`order` WHERE confirmation_code = ? AND status != 'CANCELLED'";
+        PooledConnection pConn = null;
+        try {
+            pConn = pool.getConnection();
+            PreparedStatement ps = pConn.getConnection().prepareStatement(sql);
+            ps.setInt(1, code);
+            ResultSet rs = ps.executeQuery();
+            return rs.next(); 
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return true; 
+        } finally {
+            if (pConn != null) pool.releaseConnection(pConn);
+        }
+    }
 
     /**
      * Retrieves a specific order by its unique database ID.

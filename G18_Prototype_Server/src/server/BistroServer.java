@@ -179,7 +179,11 @@ public class BistroServer extends AbstractServer {
                             List<Timestamp> alternatives = reservationLogic.checkAvailability(newOrder);
 
                             if (alternatives == null) {
-                                int code = (int) (Math.random() * 9000) + 1000;
+                                int code; 
+                                do {
+                                    code = (int) (Math.random() * 9000) + 1000;
+                                } while (orderRepo.isCodeExists(code));
+                                
                                 newOrder.setConfirmationCode(code);
                                 newOrder.setStatus("PENDING");
 
