@@ -155,18 +155,30 @@ public class UserRepository {
      * @return The auto-generated user_id, or -1 on failure.
      */
     public int registerUser(User u) {
-    		int generatedMemberCode = (int)(Math.random() * 900000) + 100000;
-        u.setMemberCode(generatedMemberCode);
-        String sql = "INSERT INTO users (user_id,username, password, first_name, last_name, role, phone, email, member_code) " +
-                     "VALUES (?,?, ?, ?, ?, ?, ?, ?, ?)";
-        
         PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();
             if (pConn == null) return -1;
-
             Connection conn = pConn.getConnection();
-            PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+
+            int generatedMemberCode;
+            boolean isCodeTaken;
+            do {
+                generatedMemberCode = (int)(Math.random() * 900000) + 100000;
+                String checkSql = "SELECT COUNT(*) FROM users WHERE member_code = ?";
+                PreparedStatement psCheck = conn.prepareStatement(checkSql);
+                psCheck.setInt(1, generatedMemberCode);
+                ResultSet rs = psCheck.executeQuery();
+                rs.next();
+                isCodeTaken = rs.getInt(1) > 0;
+            } while (isCodeTaken); 
+
+            u.setMemberCode(generatedMemberCode);
+            
+            String sql = "INSERT INTO users (user_id, username, password, first_name, last_name, role, phone, email, member_code) " +
+                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            
+            PreparedStatement ps = conn.prepareStatement(sql);
             ps.setInt(1, u.getUserId());
             ps.setString(2, u.getUsername());
             ps.setString(3, u.getPassword());
@@ -175,12 +187,11 @@ public class UserRepository {
             ps.setString(6, u.getRole().toString());
             ps.setString(7, u.getPhone());
             ps.setString(8, u.getEmail());
-            ps.setInt(9, generatedMemberCode); // Storing the integer code
+            ps.setInt(9, generatedMemberCode);
 
             int affectedRows = ps.executeUpdate();
-
             if (affectedRows > 0) {
-            		return generatedMemberCode;
+                return generatedMemberCode;
             }
         } catch (SQLException e) {
             e.printStackTrace();

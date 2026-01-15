@@ -32,8 +32,8 @@ public class OrderRepository {
      * @return The generated Order ID (primary key) from the database, or -1 if the operation failed.
      */
     public int createOrder(Order o) {
-    		String sql = "INSERT INTO bistro.`order` (order_date, number_of_guests, confirmation_code, subscriber_id, status, phone, email, customer_name) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO bistro.`order` (order_date, number_of_guests, confirmation_code, subscriber_id, status, phone, email, customer_name) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();
@@ -152,6 +152,33 @@ public class OrderRepository {
             if (pConn != null) pool.releaseConnection(pConn);
         }
         return null;
+    }
+
+    /**
+     * Retrieves the live waitlist and active orders for the dashboard.
+     * Fetches orders with status WAITING, or PENDING for today.
+     */
+    public ArrayList<Order> getLiveWaitingList() {
+        ArrayList<Order> list = new ArrayList<>();
+        String sql = "SELECT * FROM bistro.`order` " +
+                     "WHERE status = 'WAITING' " +
+                     "OR (status = 'PENDING' AND DATE(order_date) = CURDATE()) " +
+                     "ORDER BY order_date ASC"; 
+        
+        PooledConnection pConn = null;
+        try {
+            pConn = pool.getConnection();
+            PreparedStatement ps = pConn.getConnection().prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(mapRowToOrder(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (pConn != null) pool.releaseConnection(pConn);
+        }
+        return list;
     }
 
     /**
@@ -501,18 +528,27 @@ public class OrderRepository {
     
     public ArrayList<String> getRemindersList() {
         ArrayList<String> messages = new ArrayList<>();
-        String sqlSelect = "SELECT * FROM `bistro`.`order` WHERE status = 'PENDING' " +
+        
+        String sqlSelect = "SELECT * FROM bistro.`order` WHERE status = 'PENDING' " +
                 "AND TIMESTAMPDIFF(MINUTE, NOW(), order_date) BETWEEN 115 AND 125";
-        String sqlUpdate = "UPDATE `bistro`.`order` SET status = 'NOTIFIED' WHERE order_number = ?";
+        
+        String sqlUpdate = "UPDATE bistro.`order` SET status = 'NOTIFIED' WHERE order_number = ?";
+        
         PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();
             Connection conn = pConn.getConnection();
-            ResultSet rs = conn.prepareStatement(sqlSelect).executeQuery();            while (rs.next()) {
-            	int orderNum = rs.getInt("order_number");
-                String msg = "Your reservation to the resturant is in 2 hours!\n" +
-                             "ORDER NUMBER : " + orderNum;
+            ResultSet rs = conn.prepareStatement(sqlSelect).executeQuery();            
+            
+            while (rs.next()) {
+                int orderNum = rs.getInt("order_number");
+                
+                String email = rs.getString("email"); 
+                
+                String msg = "Reminder for " + email + ": Your reservation is in 2 hours! Order #" + orderNum;
+                
                 messages.add(msg);
+                
                 PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate);
                 psUpdate.setInt(1, orderNum);
                 psUpdate.executeUpdate();
@@ -603,7 +639,63 @@ public class OrderRepository {
         }
         return list;
     }
-
+    
+    /**
+     * Retrieves a list of currently seated customers (active tables).
+     * Includes status SEATED and BILLED.
+     */
+    public ArrayList<Order> getActiveDiners() {
+        ArrayList<Order> list = new ArrayList<>();
+        String sql = "SELECT * FROM bistro.`order` WHERE status IN ('SEATED', 'BILLED') ORDER BY order_date ASC";
+        
+        PooledConnection pConn = null;
+        try {
+            pConn = pool.getConnection();
+            PreparedStatement ps = pConn.getConnection().prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                list.add(mapRowToOrder(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (pConn != null) pool.releaseConnection(pConn);
+        }
+        return list;
+    }
+    
+    
+    /**
+     * Retrieves ALL relevant orders for the current day/shift.
+     * Includes: Future arrivals today, Waiting list, and Seated customers.
+     * Excludes: Cancelled orders and Completed (paid) orders.
+     */
+    public ArrayList<Order> getAllActiveOrdersForToday() {
+        ArrayList<Order> list = new ArrayList<>();
+        
+       
+        String sql = "SELECT * FROM bistro.`order` " +
+                     "WHERE status IN ('SEATED', 'BILLED', 'WAITING', 'NOTIFIED') " +
+                     "OR (status = 'PENDING' AND DATE(order_date) = CURDATE()) " +
+                     "ORDER BY order_date ASC"; 
+                     
+        PooledConnection pConn = null;
+        try {
+            pConn = pool.getConnection();
+            PreparedStatement ps = pConn.getConnection().prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                list.add(mapRowToOrder(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (pConn != null) pool.releaseConnection(pConn);
+        }
+        return list;
+    }
    
     // Management and Reports
     /**
@@ -650,6 +742,7 @@ public class OrderRepository {
         o.setPhone(rs.getString("phone"));
         o.setEmail(rs.getString("email"));
         
+        o.setCustomerName(rs.getString("customer_name"));
         
         o.setAssignedTableId(rs.getInt("assigned_table_id"));
         if (rs.wasNull()) o.setAssignedTableId(null);
@@ -733,6 +826,71 @@ public class OrderRepository {
         }
         return data;
     }
-    
+
+    /**
+     * Checks for orders conflicting with new opening hours, cancels them,
+     * and returns the list of cancelled orders so the server can notify them.
+     */
+    public ArrayList<common.Order> cancelConflictingOrders(common.OpeningHour newRules) {
+        ArrayList<common.Order> cancelledList = new ArrayList<>();
+        
+        String sqlCancel = "UPDATE bistro.`order` SET status = 'CANCELLED' WHERE order_number = ?";
+        
+        String sqlSelect;
+        if (newRules.getSpecificDate() != null) {
+            sqlSelect = "SELECT * FROM bistro.`order` WHERE DATE(order_date) = ? AND status != 'CANCELLED'";
+        } else {
+            sqlSelect = "SELECT * FROM bistro.`order` WHERE DAYOFWEEK(order_date) = ? AND order_date > NOW() AND status != 'CANCELLED'";
+        }
+
+        PooledConnection pConn = null;
+        try {
+            pConn = pool.getConnection();
+            Connection conn = pConn.getConnection();
+            PreparedStatement psSelect = conn.prepareStatement(sqlSelect);
+            
+            if (newRules.getSpecificDate() != null) {
+                psSelect.setDate(1, newRules.getSpecificDate());
+            } else {
+                psSelect.setInt(1, newRules.getDayOfWeek());
+            }
+
+            ResultSet rs = psSelect.executeQuery();
+            
+            while (rs.next()) {
+                boolean shouldCancel = false;
+                Time orderTime = rs.getTime("order_date");
+                
+                if (newRules.isClosed()) {
+                    shouldCancel = true;
+                } else {
+                    java.time.LocalTime ord = orderTime.toLocalTime();
+                    java.time.LocalTime open = newRules.getOpenTime().toLocalTime();
+                    java.time.LocalTime close = newRules.getCloseTime().toLocalTime();
+                    
+                    if (ord.isBefore(open) || ord.isAfter(close)) {
+                        shouldCancel = true;
+                    }
+                }
+                
+                if (shouldCancel) {
+                    common.Order orderToCancel = mapRowToOrder(rs);
+                    
+                    PreparedStatement psCancel = conn.prepareStatement(sqlCancel);
+                    psCancel.setInt(1, orderToCancel.getOrderNumber());
+                    psCancel.executeUpdate();
+                    
+                    cancelledList.add(orderToCancel);
+                }
+            }
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (pConn != null) pool.releaseConnection(pConn);
+        }
+        
+        return cancelledList; 
+    }
    
 }

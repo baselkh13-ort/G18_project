@@ -10,6 +10,7 @@ import common.OpeningHour;
 public class OpeningHoursRepository {
     
     private final MySQLConnectionPool pool;
+   
     
     /**
      * Constructor: Initializes the connection to the database.
@@ -86,27 +87,67 @@ public class OpeningHoursRepository {
      * Updates the time or status (open/closed) for a specific record.
      * Fixed implementation using the Connection Pool.
      */
+
     public boolean updateOpeningHour(OpeningHour hour) {
-        String sql = "UPDATE opening_hours SET open_time = ?, close_time = ?, is_closed = ? WHERE day_of_week = ?";
-        
         PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();
-            PreparedStatement ps = pConn.getConnection().prepareStatement(sql);
-            
-            ps.setTime(1, hour.getOpenTime());
-            ps.setTime(2, hour.getCloseTime());
-            ps.setBoolean(3, hour.isClosed());
-            ps.setInt(4, hour.getDayOfWeek()); 
+            Connection conn = pConn.getConnection();
 
-            int rowsAffected = ps.executeUpdate();
-            return rowsAffected > 0;
+            int rowsAffected = 0;
             
+            if (hour.getSpecificDate() != null) {
+                System.out.println("[Server DB] Trying to update Specific Date: " + hour.getSpecificDate());
+                
+                String updateSQL = "UPDATE opening_hours SET open_time = ?, close_time = ?, is_closed = ? WHERE specific_date = ?";
+                PreparedStatement psUpdate = conn.prepareStatement(updateSQL);
+                psUpdate.setTime(1, hour.getOpenTime());
+                psUpdate.setTime(2, hour.getCloseTime());
+                psUpdate.setBoolean(3, hour.isClosed());
+                psUpdate.setDate(4, hour.getSpecificDate()); 
+                
+                rowsAffected = psUpdate.executeUpdate();
+                psUpdate.close();
+                
+                if (rowsAffected == 0) {
+                    System.out.println("[Server DB] Date not found. Inserting new row...");
+                    String insertSQL = "INSERT INTO opening_hours (day_of_week, specific_date, open_time, close_time, is_closed) VALUES (0, ?, ?, ?, ?)";
+                    PreparedStatement psInsert = conn.prepareStatement(insertSQL);
+                    
+                    psInsert.setDate(1, hour.getSpecificDate());
+                    psInsert.setTime(2, hour.getOpenTime());
+                    psInsert.setTime(3, hour.getCloseTime());
+                    psInsert.setBoolean(4, hour.isClosed());
+                    
+                    rowsAffected = psInsert.executeUpdate();
+                }
+            } 
+            else {
+                System.out.println("[Server DB] Updating regular day: " + hour.getDayOfWeek());
+                
+                String sql = "UPDATE opening_hours SET open_time = ?, close_time = ?, is_closed = ? WHERE day_of_week = ?";
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ps.setTime(1, hour.getOpenTime());
+                ps.setTime(2, hour.getCloseTime());
+                ps.setBoolean(3, hour.isClosed());
+                ps.setInt(4, hour.getDayOfWeek());
+                
+                rowsAffected = ps.executeUpdate();
+            }
+
+            return rowsAffected > 0;
+
         } catch (SQLException e) {
+            System.out.println("SQL ERROR ");
+            System.out.println("Error while saving opening hours:");
+            System.out.println("Message: " + e.getMessage());
+            System.out.println("SQL State: " + e.getSQLState());
             e.printStackTrace();
+            System.out.println("=======================================");
             return false;
         } finally {
             if (pConn != null) pool.releaseConnection(pConn);
         }
     }
+   
 }
