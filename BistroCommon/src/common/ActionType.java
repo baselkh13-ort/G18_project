@@ -26,7 +26,7 @@ public enum ActionType {
     PAY_BILL,
     
     GET_ALL_ORDERS,
-   
+    GET_ALL_TABLES,
     ADD_TABLE,
     REMOVE_TABLE,           
     UPDATE_TABLE,

@@ -6,18 +6,44 @@ import java.util.*;
 import common.*;
 import server.*;
 
+/**
+ * The logic class that manages all table reservations.
+ *
+ * Software Structure:
+ * This class is part of the Logic Layer in the software architecture.
+ * It receives reservation requests from the Server and communicates with the
+ * Database Layer (Repositories) to check for table availability and opening hours.
+ * It enforces the restaurant's rules before saving an order.
+ *
+ * @author Dana Zablev
+ * @version 1.0
+ */
 public class ReservationLogic {
 
+    /** Connection to the order database table. */
     private final OrderRepository orderRepo;
+    /** Connection to the table database table. */
     private final TableRepository tableRepo;
+    /** Connection to the opening hours database table. */
     private final OpeningHoursRepository openingHoursRepo;
 
+    /**
+     * Constructor for the class.
+     * Initializes the connections to the database repositories.
+     */
     public ReservationLogic() {
         this.orderRepo = new OrderRepository();
         this.tableRepo = new TableRepository();
         this.openingHoursRepo = new OpeningHoursRepository();
     }
 
+    /**
+     * Main method to check if an order can be placed.
+     * It checks opening hours, booking window rules, and table availability.
+     *
+     * @param order The order object containing date and guest count.
+     * @return A list of alternative times if the table is full, or null if the booking is successful.
+     */
     public List<Timestamp> checkAvailability(Order order) {
         System.out.println("DEBUG: Checking Availability for: " + order.getOrderDate() + ", Guests: " + order.getNumberOfGuests());
         
@@ -47,6 +73,14 @@ public class ReservationLogic {
         return findAlternativesBestFit(orderTime, order.getNumberOfGuests());
     }
 
+    /**
+     * The algorithm that finds the best table for a group.
+     * It checks which tables are free and picks the one that fits best (Best Fit).
+     *
+     * @param time The time of the reservation.
+     * @param newGroupSize The number of guests.
+     * @return True if a suitable table is found, False otherwise.
+     */
     private boolean isTableAvailableBestFit(Timestamp time, int newGroupSize) {
         List<Table> allTables = tableRepo.getAllTables();
         
@@ -89,6 +123,12 @@ public class ReservationLogic {
     }
 
     
+    /**
+     * Checks if the restaurant is open at the requested time.
+     *
+     * @param orderTime The time the customer wants to book.
+     * @throws IllegalArgumentException If the restaurant is closed.
+     */
     private void validateOpeningHours(Timestamp orderTime) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(orderTime);
@@ -107,8 +147,14 @@ public class ReservationLogic {
         }
     }
         
-       
-
+        
+    /**
+     * Checks if the booking is made within the allowed time window.
+     * Rule: Must be at least 1 hour in advance and not more than 1 month ahead.
+     *
+     * @param orderTime The requested reservation time.
+     * @param now The current server time.
+     */
     private void validateBookingWindow(Timestamp orderTime, long now) {
         if (orderTime.getTime() < now + 3600000)
             throw new IllegalArgumentException("Must book at least 1 hour in advance.");
@@ -119,6 +165,14 @@ public class ReservationLogic {
             throw new IllegalArgumentException("Cannot book more than 1 month ahead.");
     }
     
+    /**
+     * Finds alternative time slots if the requested time is full.
+     * It checks 30 and 60 minutes before and after the requested time.
+     *
+     * @param originalTime The time the user originally wanted.
+     * @param guests The number of guests.
+     * @return A list of available alternative times.
+     */
     private List<Timestamp> findAlternativesBestFit(Timestamp originalTime, int guests) {
         List<Timestamp> alternatives = new ArrayList<>();
         int[] offsets = {-30, 30, -60, 60};
@@ -134,6 +188,14 @@ public class ReservationLogic {
         return alternatives;
     }
     
+    /**
+     * Generates a list of all available time slots for a specific date.
+     * This is used by the UI to show the user what times they can pick.
+     *
+     * @param date The date to check.
+     * @param guests The number of guests.
+     * @return A list of strings representing available times (e.g., "18:00", "18:30").
+     */
     public List<String> getAvailableSlotsForDate(java.sql.Date date, int guests) {
         List<String> validSlots = new ArrayList<>();
         Calendar cal = Calendar.getInstance();
@@ -141,7 +203,7 @@ public class ReservationLogic {
         int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
         OpeningHour hours = openingHoursRepo.getHoursForDate(date, dayOfWeek);
         if (hours == null || hours.isClosed()) {
-        		validSlots.add("CLOSED");
+                validSlots.add("CLOSED");
             return validSlots; 
         }
         Calendar currentSlot = Calendar.getInstance();
@@ -167,8 +229,8 @@ public class ReservationLogic {
             }
             if (isTableAvailableBestFit(slotTimestamp, guests)) {
                 String timeString = String.format("%02d:%02d", 
-                                    currentSlot.get(Calendar.HOUR_OF_DAY), 
-                                    currentSlot.get(Calendar.MINUTE));
+                                                currentSlot.get(Calendar.HOUR_OF_DAY), 
+                                                currentSlot.get(Calendar.MINUTE));
                 validSlots.add(timeString);
             }
             currentSlot.add(Calendar.MINUTE, 30);

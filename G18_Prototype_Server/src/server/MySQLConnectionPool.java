@@ -13,7 +13,17 @@ import java.sql.Connection;
 
 /**
  * Singleton class that manages a pool of MySQL database connections.
- * It reuses connections to improve performance and closes idle connections automatically.
+ *
+ * Software Structure:
+ * This class is a utility component in the Infrastructure Layer. It uses the Singleton pattern
+ * to ensure only one pool exists. All Repositories use this class to get access to the database.
+ * It improves performance by reusing connections instead of creating new ones every time.
+ *
+ * UI Components:
+ * Does not interact directly with the UI, but prints status logs to the server console.
+ *
+ * @author Dana Zablev
+ * @version 1.0
  */
 public class MySQLConnectionPool {
 
@@ -36,7 +46,7 @@ public class MySQLConnectionPool {
     /**
      * Sets the password used to connect to the MySQL database.
      * This must be called before the first connection is attempted.
-     * * @param password The MySQL password provided by the user.
+     * @param password The MySQL password provided by the user.
      */
     public static void setDBPassword(String password) {
         PASS = password;
@@ -54,7 +64,7 @@ public class MySQLConnectionPool {
 
     /**
      * Retrieves the single instance of the connection pool.
-     * * @return The singleton instance of MySQLConnectionPool.
+     * @return The singleton instance of MySQLConnectionPool.
      */
     public static synchronized MySQLConnectionPool getInstance() {
         if (instance == null) {
@@ -67,7 +77,7 @@ public class MySQLConnectionPool {
     /**
      * Retrieves a connection for use from the pool.
      * If the pool is empty, a new physical connection is created.
-     * * @return A valid PooledConnection object.
+     * @return A valid PooledConnection object.
      */
     public PooledConnection getConnection() {
         PooledConnection pConn = pool.poll(); // Try to get from queue
@@ -85,7 +95,7 @@ public class MySQLConnectionPool {
     /**
      * Returns a connection back to the pool after use.
      * If the pool is full, the connection is physically closed to save resources.
-     * * @param pConn The connection object to be released.
+     * @param pConn The connection object to be released.
      */
     public void releaseConnection(PooledConnection pConn) {
         if (pConn != null) {
@@ -103,7 +113,7 @@ public class MySQLConnectionPool {
     
     /**
      * Establishes a new physical connection to the MySQL database.
-     * * @return A new PooledConnection wrapped around a JDBC Connection, or null if failed.
+     * @return A new PooledConnection wrapped around a JDBC Connection, or null if failed.
      */
     private PooledConnection createNewConnection() {
         try {
@@ -126,13 +136,18 @@ public class MySQLConnectionPool {
     }
 
     /**
-     * Checks all idle connections in the pool.
-     * If a connection hasn't been used for longer than MAX_IDLE_TIME, it is closed and removed.
+     * A helper method to test if a connection can be established.
+     * @throws SQLException If connection fails.
      */
     public static void testConnection() throws SQLException {
         Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
         conn.close(); 
     }
+
+    /**
+     * Checks all idle connections in the pool.
+     * If a connection hasn't been used for longer than MAX_IDLE_TIME, it is closed and removed.
+     */
     private void checkIdleConnections() {
         if (pool.isEmpty()) return;
 

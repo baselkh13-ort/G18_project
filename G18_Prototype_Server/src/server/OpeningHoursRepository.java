@@ -6,9 +6,20 @@ import common.OpeningHour;
 
 /**
  * Repository class specifically for managing the restaurant's opening and closing hours.
+ *
+ * Software Structure:
+ * This class belongs to the Database Layer. It executes SQL queries related to the
+ * "opening_hours" table. It supports both regular weekly schedules and specific date overrides.
+ *
+ * UI Components:
+ * Used by the Server GUI (Management Screen) to display and edit operating hours.
+ *
+ * @author Dana Zablev
+ * @version 1.0
  */
 public class OpeningHoursRepository {
     
+    /** The connection pool instance. */
     private final MySQLConnectionPool pool;
    
     
@@ -52,6 +63,14 @@ public class OpeningHoursRepository {
         return list;
     }
 
+    /**
+     * Finds the opening hours for a specific date or day of the week.
+     * Logic: It prioritizes a specific date rule. If not found, it uses the day of the week.
+     *
+     * @param date The specific date to check.
+     * @param dayOfWeek The integer representing the day (1=Sunday, etc.).
+     * @return The OpeningHour object containing the times.
+     */
     public OpeningHour getHoursForDate(java.sql.Date date, int dayOfWeek) {
         String sql = "SELECT * FROM opening_hours WHERE specific_date = ? " +
                      "OR (specific_date IS NULL AND day_of_week = ?) " +
@@ -85,9 +104,11 @@ public class OpeningHoursRepository {
 
     /**
      * Updates the time or status (open/closed) for a specific record.
-     * Fixed implementation using the Connection Pool.
+     * If the update is for a specific date and it doesn't exist, it inserts a new row.
+     *
+     * @param hour The OpeningHour object with the new details.
+     * @return true if the database update was successful.
      */
-
     public boolean updateOpeningHour(OpeningHour hour) {
         PooledConnection pConn = null;
         try {
@@ -149,5 +170,4 @@ public class OpeningHoursRepository {
             if (pConn != null) pool.releaseConnection(pConn);
         }
     }
-   
 }

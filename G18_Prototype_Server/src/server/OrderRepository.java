@@ -2,17 +2,30 @@ package server;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Map;      
-import java.util.HashMap;  
+import java.util.Map;       
+import java.util.HashMap;   
 import common.Order;
 
 /**
  * Repository class responsible for all database operations regarding Orders and Tables.
- * Handles order creation, status updates, history retrieval, real-time availability, 
- * waitlist management, payment, and report generation.
+ *
+ * Software Structure:
+ * This class acts as the Data Access Object (DAO) in the Database Layer.
+ * It contains all the SQL queries used to create, read, update, and delete orders.
+ * It is used by the Server Controller and the Logic classes to access the MySQL database.
+ *
+ * UI Components:
+ * This class provides the data shown in almost every screen of the application:
+ * - The Dashboard (Active orders)
+ * - Order History screen
+ * - Report screens (Performance and Subscription data)
+ *
+ * @author Dana Zablev
+ * @version 1.0
  */
 public class OrderRepository {
 
+    /** The connection pool instance to manage DB connections. */
     private final MySQLConnectionPool pool;
 
     /**
@@ -22,13 +35,11 @@ public class OrderRepository {
         this.pool = MySQLConnectionPool.getInstance();
     }
 
-    
-    // Order Creation,Retrieval
-
     /**
      * Creates a new order in the database.
      * Handles both registered members (subscriber_id) and casual customers (null id).
-     * * @param o The Order object containing all reservation details.
+     *
+     * @param o The Order object containing all reservation details.
      * @return The generated Order ID (primary key) from the database, or -1 if the operation failed.
      */
     public int createOrder(Order o) {
@@ -71,6 +82,14 @@ public class OrderRepository {
         }
         return -1;
     }
+
+    /**
+     * Checks if a confirmation code already exists in the database.
+     * Used to ensure the random code generator creates a unique code.
+     *
+     * @param code The code to check.
+     * @return true if the code exists, false otherwise.
+     */
     public boolean isCodeExists(int code) {
         String sql = "SELECT confirmation_code FROM bistro.`order` WHERE confirmation_code = ? AND status != 'CANCELLED'";
         PooledConnection pConn = null;
@@ -89,7 +108,8 @@ public class OrderRepository {
     }
 
     /**
-     * Retrieves a specific order by its unique database ID.
+     * Retrieves a specific order by its unique database ID (Primary Key).
+     *
      * @param orderId The primary key of the order.
      * @return The Order object if found, or null otherwise.
      */
@@ -112,13 +132,10 @@ public class OrderRepository {
         return null;
     }
 
-    
-    // Arrival,Seating
- 
-    
     /**
      * Finds an order by the confirmation code provided by the customer.
-     * Used during the arrival validation process.
+     * Used during the arrival validation process at the restaurant entrance.
+     *
      * @param code The 4-digit confirmation code.
      * @return The Order object if valid and not cancelled, or null.
      */
@@ -143,12 +160,13 @@ public class OrderRepository {
 
     /**
      * Attempts to find an active order (PENDING/WAITING) for today using contact info.
-     * Used for the "Restore Code" functionality.
+     * Used for the "Restore Code" functionality if a customer lost their code.
+     *
      * @param identifier Phone number or Email address.
      * @return The active Order object if found, or null.
      */
     public Order findOrderByContact(String identifier) {
-    	String sql = "SELECT * FROM bistro.`order` WHERE (phone = ? OR email = ?) " +
+        String sql = "SELECT * FROM bistro.`order` WHERE (phone = ? OR email = ?) " +
                 "AND status IN ('PENDING', 'WAITING', 'NOTIFIED') " +
                 "AND order_date >= CURDATE()"; 
         
@@ -172,7 +190,9 @@ public class OrderRepository {
 
     /**
      * Retrieves the live waitlist and active orders for the dashboard.
-     * Fetches orders with status WAITING, or PENDING for today.
+     * Fetches orders with status WAITING, or PENDING for the current day.
+     *
+     * @return A list of orders currently active or waiting.
      */
     public ArrayList<Order> getLiveWaitingList() {
         ArrayList<Order> list = new ArrayList<>();
@@ -201,17 +221,18 @@ public class OrderRepository {
      * Assigns a physical table to an order upon arrival.
      * Logic: Finds a table with status 'AVAILABLE' and sufficient capacity.
      * Updates the order status to 'SEATED' and links the table ID.
-     * * @param orderId The order to seat.
+     *
+     * @param orderId The order to seat.
      * @param guests The number of guests (to find appropriate table size).
      * @return The Table ID assigned, or -1 if no suitable table is free.
      */
     public int assignFreeTable(int orderId, int guests) {
-        // Updated to use backticks for `tables` as it's a reserved keyword
         String findTableSQL = "SELECT t.table_id FROM `tables` t " +
                               "WHERE t.capacity >= ? " + 
                               "AND t.status = 'AVAILABLE' LIMIT 1";
 
-        String updateOrderSQL = "UPDATE bistro.`order` SET assigned_table_id = ?, status = 'SEATED', actual_arrival_time = NOW() WHERE order_number = ?";        String updateTableSQL = "UPDATE `tables` SET status = 'OCCUPIED' WHERE table_id = ?";
+        String updateOrderSQL = "UPDATE bistro.`order` SET assigned_table_id = ?, status = 'SEATED', actual_arrival_time = NOW() WHERE order_number = ?";
+        String updateTableSQL = "UPDATE `tables` SET status = 'OCCUPIED' WHERE table_id = ?";
         
         PooledConnection pConn = null;
         try {
@@ -251,12 +272,11 @@ public class OrderRepository {
         }
     }
 
-  
-    // History and Status Management
     /**
      * Retrieves the complete order history for a specific registered member.
+     *
      * @param subscriberId The member's ID.
-     * @return A list of all past and future orders.
+     * @return A list of all past and future orders for this user.
      */
     public ArrayList<Order> getMemberHistory(int subscriberId) {
         ArrayList<Order> history = new ArrayList<>();
@@ -279,7 +299,8 @@ public class OrderRepository {
     }
 
     /**
-     * Updates the status of an order  (CANCELLED, COMPLETED).
+     * Updates the status of an order (e.g., changing to CANCELLED, COMPLETED).
+     *
      * @param orderNumber The ID of the order.
      * @param newStatus The new status string.
      * @return true if the update was successful.
@@ -304,6 +325,7 @@ public class OrderRepository {
     /**
      * Updates the order time to the current server time.
      * Used when notifying a waiting customer that their table is ready now.
+     *
      * @param orderNumber The order ID.
      */
     public void updateOrderTime(int orderNumber) {
@@ -320,15 +342,17 @@ public class OrderRepository {
             if (pConn != null) pool.releaseConnection(pConn);
         }
     }
+
     /**
      * Updates the date and number of guests for an existing order.
+     *
      * @param orderId The ID of the order to update.
      * @param newDate The new requested date and time.
      * @param newGuests The new number of guests.
      * @return true if the update was successful.
      */
     public boolean updateOrder(int orderId, java.sql.Timestamp newDate, int newGuests) {
-    	String sql = "UPDATE bistro.`order` SET order_date = ?, number_of_guests = ? WHERE order_number = ?";
+        String sql = "UPDATE bistro.`order` SET order_date = ?, number_of_guests = ? WHERE order_number = ?";
         PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();
@@ -345,11 +369,11 @@ public class OrderRepository {
             if (pConn != null) pool.releaseConnection(pConn);
         }
     }
-  
-    // Payment Processing
+
     /**
      * Processes the payment for an order.
      * Sets status to COMPLETED, frees the table, and records the final price.
+     *
      * @param orderId The order being paid.
      * @param finalPrice The amount paid after discounts.
      * @return true if payment recorded successfully.
@@ -359,12 +383,12 @@ public class OrderRepository {
         // First get the table ID
         Order order = getOrderById(orderId);
         if (order == null) {
-        		return false;
+                return false;
         }
         Integer tableId = order.getAssignedTableId();
         //COMPLETED
         String sqlOrder = "UPDATE bistro.`order` SET total_price = ?, status = 'COMPLETED', assigned_table_id = NULL, actual_leave_time = NOW() WHERE order_number = ?";
-        //AVAILABLE 	
+        //AVAILABLE     
         String sqlTable = "UPDATE `tables` SET status = 'AVAILABLE' WHERE table_id = ?";
 
         PooledConnection pConn = null;
@@ -395,11 +419,10 @@ public class OrderRepository {
         }
     }
 
-
-    // Waitlist and Availability Logic
     /**
      * Checks if there is a table available *right now* for a specific group size.
      * Used for Walk-in customers.
+     *
      * @param requiredCapacity Number of seats required.
      * @return true if a table is free, false otherwise.
      */
@@ -441,6 +464,8 @@ public class OrderRepository {
 
     /**
      * Finds the next order in the waitlist that fits the given capacity.
+     * Used to notify the next customer when a table is freed.
+     *
      * @param capacity The size of the table that just became free.
      * @return The Order object of the next person in line, or null.
      */
@@ -466,10 +491,9 @@ public class OrderRepository {
         return null;
     }
 
-   
-    // Scheduler Tasks 
     /**
      * Cancels orders where the customer is late by more than the specified minutes.
+     *
      * @param minutesThreshold Time allowed before cancellation (e.g., 15 mins).
      * @return Number of orders cancelled.
      */
@@ -521,10 +545,16 @@ public class OrderRepository {
         return canceledCount;
     }
     
+    /**
+     * Cancels a specific order by its confirmation code.
+     *
+     * @param customerCode The confirmation code of the order.
+     * @return true if the order was found and cancelled.
+     */
     public boolean cancelOrderByCode(int customerCode) {
-    	String sql = "UPDATE bistro.`order` SET status = 'CANCELLED' " +
-    			"WHERE confirmation_code = ? AND status IN ('WAITING', 'NOTIFIED', 'PENDING')";
-    	PooledConnection pConn = null;
+        String sql = "UPDATE bistro.`order` SET status = 'CANCELLED' " +
+                "WHERE confirmation_code = ? AND status IN ('WAITING', 'NOTIFIED', 'PENDING')";
+        PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();
             PreparedStatement ps = pConn.getConnection().prepareStatement(sql);
@@ -540,6 +570,11 @@ public class OrderRepository {
         }
     }
     
+    /**
+     * Finds orders that are about 2 hours away and sends a reminder.
+     *
+     * @return A list of strings (messages) to send to customers.
+     */
     public ArrayList<String> getRemindersList() {
         ArrayList<String> messages = new ArrayList<>();
         
@@ -575,6 +610,12 @@ public class OrderRepository {
         return messages;
     }
     
+    /**
+     * Checks for orders that have been seated for 2 hours and sends an automatic invoice.
+     * Changes status to 'BILLED'.
+     *
+     * @return A list of invoice strings to display/send.
+     */
     public ArrayList<String> getAutomaticInvoices() {
         ArrayList<String> messages = new ArrayList<>();
         
@@ -583,7 +624,7 @@ public class OrderRepository {
         String sqlUpdate = "UPDATE bistro.`order` SET status = 'BILLED' WHERE order_number = ?";
         PooledConnection pConn = null;
         try {
-        		pConn = pool.getConnection();
+                pConn = pool.getConnection();
             Connection conn = pConn.getConnection();
             ResultSet rs = conn.prepareStatement(sqlSelect).executeQuery();
             
@@ -592,9 +633,9 @@ public class OrderRepository {
                 double price = guests * 100.0;
                 
                 String msg = "[Invoice] Your time is over Order " + rs.getInt("order_number") + 
-                		" | Email: " + rs.getString("email") +
-                		" | Details: " + guests + " Chef Meals" +
-                		" | Total: " + price + " NIS";
+                        " | Email: " + rs.getString("email") +
+                        " | Details: " + guests + " Chef Meals" +
+                        " | Total: " + price + " NIS";
                         
                 messages.add(msg);
                 PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate);
@@ -610,15 +651,12 @@ public class OrderRepository {
         return messages;
     }
 
-   
-     
-
     /**
      * Counts how many orders overlap with a requested time.
      * Used for Reservation Availability Logic.
-     * @param orderTime The requested time.
-     * @param guests Number of guests.
-     * @return Count of overlapping active orders.
+     *
+     * @param checkTime The requested time to check against.
+     * @return List of overlapping active orders.
      */
     public ArrayList<common.Order> getOverlappingOrders(java.sql.Timestamp checkTime) {
         ArrayList<common.Order> list = new ArrayList<>();
@@ -636,15 +674,15 @@ public class OrderRepository {
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
             
-            	common.Order order = new common.Order(); 
-            	order.setOrderNumber(rs.getInt("order_number"));
-            	order.setOrderDate(rs.getTimestamp("order_date"));
-            	order.setNumberOfGuests(rs.getInt("number_of_guests"));
-            	order.setPhone(rs.getString("phone"));
-            	order.setEmail(rs.getString("email"));
-            	order.setCustomerName(rs.getString("customer_name"));
+                common.Order order = new common.Order(); 
+                order.setOrderNumber(rs.getInt("order_number"));
+                order.setOrderDate(rs.getTimestamp("order_date"));
+                order.setNumberOfGuests(rs.getInt("number_of_guests"));
+                order.setPhone(rs.getString("phone"));
+                order.setEmail(rs.getString("email"));
+                order.setCustomerName(rs.getString("customer_name"));
 
-            	list.add(order);
+                list.add(order);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -657,6 +695,8 @@ public class OrderRepository {
     /**
      * Retrieves a list of currently seated customers (active tables).
      * Includes status SEATED and BILLED.
+     *
+     * @return List of orders currently at a table.
      */
     public ArrayList<Order> getActiveDiners() {
         ArrayList<Order> list = new ArrayList<>();
@@ -684,11 +724,13 @@ public class OrderRepository {
      * Retrieves ALL relevant orders for the current day/shift.
      * Includes: Future arrivals today, Waiting list, and Seated customers.
      * Excludes: Cancelled orders and Completed (paid) orders.
+     *
+     * @return List of active orders for the dashboard view.
      */
     public ArrayList<Order> getAllActiveOrdersForToday() {
         ArrayList<Order> list = new ArrayList<>();
         
-       
+        
         String sql = "SELECT * FROM bistro.`order` " +
                      "WHERE status IN ('SEATED', 'BILLED', 'WAITING', 'NOTIFIED') " +
                      "OR (status = 'PENDING' AND DATE(order_date) = CURDATE()) " +
@@ -711,9 +753,10 @@ public class OrderRepository {
         return list;
     }
    
-    // Management and Reports
     /**
-     * Retrieves all orders in the system.
+     * Retrieves all orders stored in the system.
+     * Used for the general history view.
+     *
      * @return List of all orders.
      */
     public ArrayList<Order> getAllOrders() {
@@ -738,6 +781,10 @@ public class OrderRepository {
     /**
      * Maps a ResultSet row to an Order object.
      * Helper method to reduce code duplication.
+     *
+     * @param rs The ResultSet from the query.
+     * @return An Order object populated with data.
+     * @throws SQLException If column access fails.
      */
     private Order mapRowToOrder(ResultSet rs) throws SQLException {
         Order o = new Order(
@@ -770,11 +817,11 @@ public class OrderRepository {
     /**
      * Generates data for the Monthly Performance Report.
      * Compares "Late/Cancelled" vs "Completed/On-Time" orders.
+     *
      * @param month The month to analyze.
      * @param year The year to analyze.
      * @return A map where Key is the category and Value is the count.
      */
-
     public Map<String, Integer> getPerformanceReportData(int month, int year) {
         Map<String, Integer> data = new HashMap<>();
         
@@ -831,9 +878,11 @@ public class OrderRepository {
         }
         return data;
     }
+
     /**
      * Generates data for the Subscription/Visits Report.
      * Counts total orders per day for the specified month.
+     *
      * @param month The month.
      * @param year The year.
      * @return A map where Key is the Day of Month (as String) and Value is the order count.
@@ -870,6 +919,9 @@ public class OrderRepository {
     /**
      * Checks for orders conflicting with new opening hours, cancels them,
      * and returns the list of cancelled orders so the server can notify them.
+     *
+     * @param newRules The new OpeningHour object.
+     * @return List of orders that were cancelled due to the change.
      */
     public ArrayList<common.Order> cancelConflictingOrders(common.OpeningHour newRules) {
         ArrayList<common.Order> cancelledList = new ArrayList<>();
@@ -932,9 +984,14 @@ public class OrderRepository {
         
         return cancelledList; 
     }
+
     /**
      * Checks if a customer already has an active order (SEATED, WAITING, PENDING) for today.
      * Prevents double booking or entering waitlist while seated.
+     *
+     * @param phone The customer's phone.
+     * @param email The customer's email.
+     * @return true if an active order exists.
      */
     public boolean hasActiveOrder(String phone, String email) {
         String sql = "SELECT order_number FROM bistro.`order` " +
@@ -960,5 +1017,4 @@ public class OrderRepository {
             if (pConn != null) pool.releaseConnection(pConn);
         }
     }
-   
 }

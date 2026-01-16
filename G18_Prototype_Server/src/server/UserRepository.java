@@ -7,12 +7,22 @@ import common.Role;
 
 /**
  * Repository class for managing database operations related to users.
- * This class handles authentication, registration, user identification via QR,
- * and retrieval of user lists for management purposes.
- * Supports Missions 1 (User Mgmt) and 7 (Management Reports).
+ *
+ * Software Structure:
+ * This class is the Data Access Object (DAO) for the Users table.
+ * It is located in the Database Layer and is used by the Server to handle
+ * user authentication and registration logic.
+ *
+ * UI Components:
+ * This class powers the Login Screen (authentication), the Registration Screen (adding users),
+ * and the Management Screen (viewing the list of subscribers).
+ *
+ * @author Dana Zablev
+ * @version 1.0
  */
 public class UserRepository {
 
+    /** Connection pool to manage DB access. */
     private final MySQLConnectionPool pool;
 
     /**
@@ -24,6 +34,8 @@ public class UserRepository {
 
     /**
      * Authenticates a user by their credentials.
+     * Used when the user clicks "Login".
+     *
      * @param username The unique username.
      * @param password The user password.
      * @return The User object if found, null otherwise.
@@ -54,8 +66,8 @@ public class UserRepository {
 
     /**
      * Identifies a user by scanning their unique QR code.
-     * The scanner provides a string, which is parsed to an integer (member_code)
-     * to perform the lookup in the database.
+     * The scanner provides a string, which is parsed to an integer (member_code).
+     *
      * @param qrCode The string representation of the scanned code.
      * @return The User object associated with the code, null if not found.
      */
@@ -92,8 +104,9 @@ public class UserRepository {
     }
 
     /**
-     * Retrieves all registered users (members, workers, managers) from the database.
-     * Required for Mission 7 (Management View) to display the subscriber list.
+     * Retrieves all registered users (members) from the database.
+     * Used by the Manager to see the subscriber list.
+     *
      * @return An ArrayList of all User objects.
      */
     public ArrayList<User> getAllMembers() {
@@ -121,6 +134,8 @@ public class UserRepository {
 
     /**
      * Checks if a username already exists in the system.
+     * Used during registration to prevent duplicates.
+     *
      * @param username The username to verify.
      * @return true if the username is taken, false otherwise.
      */
@@ -149,10 +164,10 @@ public class UserRepository {
 
     /**
      * Registers a new user into the database.
-     * Note: Credit card information is NOT stored.
-     * The member_code is stored as an integer for QR generation.
+     * Generates a unique 6-digit member code for the new user.
+     *
      * @param u The user object containing registration details.
-     * @return The auto-generated user_id, or -1 on failure.
+     * @return The auto-generated member_code, or -1 on failure.
      */
     public int registerUser(User u) {
         PooledConnection pConn = null;
@@ -202,7 +217,8 @@ public class UserRepository {
     }
 
     /**
-    * Updates contact info for an existing user.
+    * Updates contact info (Phone and Email) for an existing user.
+    *
     * @param userId The ID of the user.
     * @param newPhone The updated phone number.
     * @param newEmail The updated email address.
@@ -232,7 +248,8 @@ public class UserRepository {
 
     /**
      * Maps a ResultSet row to a User object.
-     * Extracts member_code as an integer.
+     * Helper method to convert database rows into Java objects.
+     *
      * @param rs The ResultSet from the database query.
      * @return A User object initialized with the row data.
      * @throws SQLException if data retrieval fails.
@@ -247,7 +264,7 @@ public class UserRepository {
             Role.valueOf(rs.getString("role")),
             rs.getString("phone"),
             rs.getString("email"),
-            rs.getInt("member_code") // Fetching the integer code
+            rs.getInt("member_code") 
         );
     }
 }

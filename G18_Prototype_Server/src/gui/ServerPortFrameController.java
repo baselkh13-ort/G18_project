@@ -18,22 +18,52 @@ import java.net.InetAddress;
 import server.ServerUI;
 
 /**
- * Controller class for the Server GUI, handling port configuration and logging.
+ * Controller class for the Server Port Configuration screen.
+ *
+ * Software Structure:
+ * This class works as the Controller in the architecture. It connects the graphical view (FXML)
+ * to the logical part of the server (ServerUI). It handles user events like button clicks.
+ *
+ * UI Components:
+ * The class manages the following interface elements:
+ * - Buttons: Done (start), Exit, and Reset.
+ * - Inputs: Text field for the database password.
+ * - Displays: Text area for logs and a List view for connected clients.
+ *
+ * @author Dana Zablev
+ * @version 1.0
  */
 public class ServerPortFrameController implements ChatIF {
 
+    /** Button to close and exit the application. */
     @FXML private Button btnExit;
+
+    /** Button to confirm the password and start the server. */
     @FXML private Button btnDone;
+
+    /** Input field for the user to enter the database password. */
     @FXML private TextField passtxt;
+
+    /** Text area that shows system logs and status messages. */
     @FXML private TextArea logArea;
+
+    /** Button to reset the form fields if the connection fails. */
     @FXML private Button btnReset;
+
+    /** List view that displays the information of connected clients. */
     @FXML private ListView<String> listClients;
 
+    /** A list that holds the client data strings for the GUI. */
     private ObservableList<String> clientListItems = FXCollections.observableArrayList();
     
+    /**
+     * Initializes the controller class.
+     * This method runs automatically after the FXML file is loaded.
+     * It sets up the screen, hides the reset button, and shows the local IP address.
+     */
     @FXML
     public void initialize() {
-    		if (btnReset != null) {
+        if (btnReset != null) {
             btnReset.setVisible(false);
         }
         try {
@@ -48,9 +78,14 @@ public class ServerPortFrameController implements ChatIF {
         listClients.setItems(clientListItems);
     }
 
-    // Event handler for the "Start" button; validates input and starts the server
+    /**
+     * Handles the click event on the Done button.
+     * It checks if the password field is not empty and tries to start the server.
+     *
+     * @param event The event triggered by clicking the button.
+     */
     public void Done(ActionEvent event) {
-    	String dbPass = passtxt.getText();
+        String dbPass = passtxt.getText();
 
         if (dbPass == null || dbPass.trim().isEmpty()) {
             display("You must enter the DB password");
@@ -68,18 +103,24 @@ public class ServerPortFrameController implements ChatIF {
         boolean success = ServerUI.runServer("5555", dbPass, this);
        
         if (!success) {
-        	if(btnReset != null)
-        		btnDone.setVisible(false);
-        		if(btnReset != null) btnReset.setVisible(true);
+            if(btnReset != null)
+                btnDone.setVisible(false);
+                if(btnReset != null) btnReset.setVisible(true);
             display("Server failed to start. Click Reset to try again.");
         }
     }
         
-        public void resetControls(ActionEvent event) {
-        		System.out.println("Reset Button Pressed");
-        		btnDone.setVisible(true);
-        		btnDone.setDisable(false);
-        		passtxt.setDisable(false);
+    /**
+     * Resets the screen controls so the user can try to connect again.
+     * It clears the password field and enables the Done button.
+     *
+     * @param event The event triggered by clicking the reset button.
+     */
+    public void resetControls(ActionEvent event) {
+            System.out.println("Reset Button Pressed");
+            btnDone.setVisible(true);
+            btnDone.setDisable(false);
+            passtxt.setDisable(false);
             passtxt.clear();
             
             if(btnReset != null) btnReset.setVisible(false);
@@ -87,15 +128,23 @@ public class ServerPortFrameController implements ChatIF {
             display("Please try again ");
     }
 
-    
-
-    // Implementation of ChatIF to display messages in the log
+    /**
+     * Displays a message in the log area.
+     * This method is an implementation of the ChatIF interface.
+     *
+     * @param message The string message to display.
+     */
     @Override
     public void display(String message) {
         appendToLog(message);
     }
 
-    // Safely updates the text area from any thread using Platform.runLater
+    /**
+     * A helper method to add text to the log area safely.
+     * It uses Platform.runLater to update the UI from any thread.
+     *
+     * @param msg The message to add to the log.
+     */
     public void appendToLog(String msg) {
         Platform.runLater(new Runnable() {
             @Override
@@ -109,7 +158,12 @@ public class ServerPortFrameController implements ChatIF {
         });
     }
 
-    // Loads the FXML file and shows the server window
+    /**
+     * Loads the FXML file and starts the main application window.
+     *
+     * @param primaryStage The main stage for the application.
+     * @throws Exception If the FXML file cannot be found or loaded.
+     */
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("/gui/ServerPort.fxml"));
         Scene scene = new Scene(root);
@@ -119,11 +173,25 @@ public class ServerPortFrameController implements ChatIF {
         primaryStage.show();
     }
 
-    // Closes the application when "Exit" is clicked
+    /**
+     * Handles the click event on the Exit button.
+     * Closes the program.
+     *
+     * @param event The event triggered by clicking the button.
+     */
     public void getExitBtn(ActionEvent event) {
         display("Exit Server");
         System.exit(0);
     }
+
+    /**
+     * Updates the list of connected clients in the user interface.
+     * It removes the old entry for a client and adds the new status.
+     *
+     * @param ip     The IP address of the client.
+     * @param host   The host name of the client.
+     * @param status The current connection status (Connected/Disconnected).
+     */
     public void updateClientList(String ip, String host, String status) {
         Platform.runLater(() -> {
             clientListItems.removeIf(item -> item.contains(ip));
