@@ -86,6 +86,7 @@ public class BistroServer extends AbstractServer {
      */
     @Override
     protected void serverStarted() {
+    		userRepo.resetAllLoginStatus();
         log("[Server] Bistro Server Listening on port " + getPort());
     }
 
@@ -117,9 +118,26 @@ public class BistroServer extends AbstractServer {
      */
     @Override
     synchronized protected void clientDisconnected(ConnectionToClient client) {
-        String ip = client.getInetAddress().getHostAddress();
-        String host = client.getInetAddress().getHostName();
+        String ip = "Unknown";
+        String host = "Unknown";
+
+        try {
+            if (client.getInetAddress() != null) {
+                ip = client.getInetAddress().getHostAddress();
+                host = client.getInetAddress().getHostName();
+            }
+        } catch (Exception e) {
+        }
+
         log("[Client Disconnected] IP: " + ip);
+
+        Object userIdObj = client.getInfo("userId");
+        if (userIdObj != null) {
+            int userId = (int) userIdObj;
+            userRepo.logoutUser(userId); 
+            log("[Auto-Logout] User ID " + userId + " released.");
+        }
+
         updateClientListInUI(ip, host, "Disconnected");
     }
 
@@ -171,6 +189,7 @@ public class BistroServer extends AbstractServer {
                         User authenticatedUser = userRepo.login(loginData.getUsername(), loginData.getPassword());
 
                         if (authenticatedUser != null) {
+                        	    client.setInfo("userId", authenticatedUser.getUserId());
                             responseMsg = new BistroMessage(ActionType.LOGIN, authenticatedUser);
                             log("[Login] Success: " + authenticatedUser.getUsername());
                         } else {
@@ -296,6 +315,14 @@ public class BistroServer extends AbstractServer {
                 case VALIDATE_ARRIVAL:
                     // Checks in a customer. If table available -> SEATED. Else -> WAITING.
                     if (request.getData() instanceof Integer) {
+                        
+                        // Check if the restaurant is currently OPEN before processing arrival
+                        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+                        if (!hoursRepo.isOpen(currentTime)) {
+                            responseMsg = new BistroMessage(ActionType.VALIDATE_ARRIVAL, "Error: Restaurant is CLOSED at this time.");
+                            break; 
+                        }
+
                         int code = (Integer) request.getData();
                         Order order = orderRepo.getOrderByCode(code);
 
@@ -342,6 +369,12 @@ public class BistroServer extends AbstractServer {
 
                         if (walkIn.getOrderDate() == null) {
                             walkIn.setOrderDate(new java.sql.Timestamp(System.currentTimeMillis()));
+                        }
+
+                        //  Check opening hours before allowing entry
+                        if (!hoursRepo.isOpen(walkIn.getOrderDate())) {
+                             responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: Restaurant is CLOSED at this time.");
+                             break;
                         }
 
                         int code;
@@ -537,33 +570,48 @@ public class BistroServer extends AbstractServer {
                     break;
 
                 case REMOVE_TABLE:
-                    // Removes a table safely and notifies affected customers
                     if (request.getData() instanceof Integer) {
                         int tableIdToRemove = (Integer) request.getData();
-                        ArrayList<Order> cancelledList = tableRepo.deleteTableSafely(tableIdToRemove);
                         
+                        //  Delete table and get list of cancelled orders
+                        ArrayList<Order> cancelledList = tableRepo.deleteTableSafely(tableIdToRemove);
+
                         if (cancelledList != null) {
-                            if (!cancelledList.isEmpty()) {
-                                log("[System] Table removed. Found " + cancelledList.size() + " overbooked orders.");
-                                
-                                for (Order o : cancelledList) {
-                                    System.out.println(" [SIMULATION] SMS sent to: " + o.getEmail()); 
-                                    System.out.println(" Message: Dear " + o.getCustomerName() + 
-                                                       ", reservation #" + o.getOrderNumber() + 
-                                                       " cancelled due to restaurant layout changes.");
-                                }
-                                responseMsg = new BistroMessage(ActionType.REMOVE_TABLE, 
-                                        "Success. Table removed. " + cancelledList.size() + " orders cancelled.");
-                            } else {
+                            //  Prepare the detailed report for the client (Manager)
+                            StringBuilder clientResponse = new StringBuilder();
+                            clientResponse.append("Success. Table ").append(tableIdToRemove).append(" removed.\n");
+
+                            if (cancelledList.isEmpty()) {
+                                clientResponse.append("No future orders were affected.");
                                 log("[Management] Removed Table " + tableIdToRemove + ". No conflicts.");
-                                responseMsg = new BistroMessage(ActionType.REMOVE_TABLE, "Success");
+                            } else {
+                                clientResponse.append("WARNING: ").append(cancelledList.size()).append(" orders were cancelled!\n\n");
+                                clientResponse.append("--- Notifications Sent ---\n");
+                                
+                                log("[System] Table removed. Found " + cancelledList.size() + " overbooked orders.");
+
+                                for (Order o : cancelledList) {
+                                    // Create the message string
+                                    String logMsg = "SMS sent to: " + o.getEmail() + 
+                                                  " (Customer: " + o.getCustomerName() + 
+                                                  ", Order #" + o.getOrderNumber() + ")";
+
+                                    // Log to Server GUI/Console
+                                    log("[SIMULATION] " + logMsg);
+
+                                    // Append to the response sent to the Manager
+                                    clientResponse.append("- ").append(logMsg).append("\n");
+                                }
                             }
+                            
+                            //  Send the full report string back to the client
+                            responseMsg = new BistroMessage(ActionType.REMOVE_TABLE, clientResponse.toString());
+                            
                         } else {
                             responseMsg = new BistroMessage(ActionType.REMOVE_TABLE, "Failed: Table ID not found");
                         }
                     }
                     break;
-
                 case UPDATE_TABLE:
                     if (request.getData() instanceof Table) {
                         Table tableToUpdate = (Table) request.getData();
@@ -589,23 +637,39 @@ public class BistroServer extends AbstractServer {
                         boolean success = hoursRepo.updateOpeningHour(hourToUpdate);
 
                         if (success) {
-                            log("[Server] Hours updated successfully.");
+                            // 1. Check for conflicts
                             ArrayList<Order> cancelledOrders = orderRepo.cancelConflictingOrders(hourToUpdate);
                             
-                            if (!cancelledOrders.isEmpty()) {
-                                log("[Notification System] Starting conflict resolution...");
-                                for (Order o : cancelledOrders) {
-                                    String emailBody = "Dear " + o.getCustomerName() + 
-                                                     ", due to schedule changes, your reservation #" + 
-                                                     o.getOrderNumber() + " has been cancelled.";
-                                    System.out.println("[SIMULATION] Sending Email to: " + o.getEmail());
-                                    System.out.println("Content: " + emailBody);
-                                }
-                                responseMsg = new BistroMessage(ActionType.UPDATE_OPENING_HOURS, 
-                                    "Success. Updated hours and notified " + cancelledOrders.size() + " customers.");
+                            // 2. Build the detailed report
+                            StringBuilder clientResponse = new StringBuilder();
+                            clientResponse.append("Hours updated successfully.\n");
+
+                            if (cancelledOrders.isEmpty()) {
+                                clientResponse.append("No existing orders were affected.");
+                                log("[Server] Hours updated. No conflicts found.");
                             } else {
-                                responseMsg = new BistroMessage(ActionType.UPDATE_OPENING_HOURS, "Success. No conflicting orders found.");
+                                clientResponse.append("WARNING: ").append(cancelledOrders.size()).append(" orders cancelled due to new hours!\n\n");
+                                clientResponse.append("--- Notifications Sent ---\n");
+                                
+                                log("[Notification System] Starting conflict resolution...");
+                                
+                                for (Order o : cancelledOrders) {
+                                    // Create the message string
+                                    String logMsg = "SMS sent to: " + o.getEmail() + 
+                                                  " (Customer: " + o.getCustomerName() + 
+                                                  ", Order #" + o.getOrderNumber() + ")";
+                                    
+                                    // Log to Server GUI
+                                    log("[SIMULATION] " + logMsg);
+                                    
+                                    // Append to Client Report
+                                    clientResponse.append("- ").append(logMsg).append("\n");
+                                }
                             }
+                            
+                            // 3. Send the full report back to the client
+                            responseMsg = new BistroMessage(ActionType.UPDATE_OPENING_HOURS, clientResponse.toString());
+                            
                         } else {
                             log("[Error] Failed to update opening hours.");
                             responseMsg = new BistroMessage(ActionType.UPDATE_OPENING_HOURS, "Error: Update failed");
@@ -694,6 +758,12 @@ public class BistroServer extends AbstractServer {
 
                 case CLIENT_QUIT:
                     log("[Server] Client disconnected.");
+                    String ip = client.getInetAddress().getHostAddress();
+                    String host = client.getInetAddress().getHostName();
+                    updateClientListInUI(ip, host, "Disconnected");
+                    try {
+                        client.close(); 
+                    } catch (IOException e) {}
                     return;
 
                 default:

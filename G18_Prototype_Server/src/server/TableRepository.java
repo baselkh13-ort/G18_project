@@ -201,70 +201,98 @@ public class TableRepository {
             pConn = pool.getConnection();
             Connection conn = pConn.getConnection();
             
-            String checkStatusSQL = "SELECT status, capacity FROM `tables` WHERE table_id = ?";
+            // 1. Check table status before deletion
+            String checkStatusSQL = "SELECT status FROM `tables` WHERE table_id = ?";
             PreparedStatement psStatus = conn.prepareStatement(checkStatusSQL);
             psStatus.setInt(1, tableId);
             ResultSet rsStatus = psStatus.executeQuery();
 
             if (!rsStatus.next()) {
-                return null; 
+                return null; // Table not found
             }
 
             String currentStatus = rsStatus.getString("status");
-            int capacity = rsStatus.getInt("capacity");
 
             if ("OCCUPIED".equalsIgnoreCase(currentStatus)) {
                 throw new IllegalStateException("Cannot remove table: It is currently OCCUPIED.");
             }
 
-            // Delete the table 
+            // 2. Delete the table
             String deleteSQL = "DELETE FROM `tables` WHERE table_id = ?";
             PreparedStatement psDelete = conn.prepareStatement(deleteSQL);
             psDelete.setInt(1, tableId);
             psDelete.executeUpdate();
 
-            
-            String countSQL = "SELECT COUNT(*) FROM `tables` WHERE capacity >= ?";
-            PreparedStatement psCount = conn.prepareStatement(countSQL);
-            psCount.setInt(1, capacity);
-            ResultSet rsCount = psCount.executeQuery();
-            int remainingTables = 0;
-            if (rsCount.next()) remainingTables = rsCount.getInt(1);
-
-            String findOrdersSQL = "SELECT * FROM bistro.`order` WHERE number_of_guests <= ? AND status = 'PENDING' AND order_date > NOW() ORDER BY order_date ASC";
+            // 3. Re-evaluate all future pending orders to ensure they still have a place
+            // We select ALL pending orders, because removing a small table might shift the load
+            // to larger tables, potentially displacing larger groups.
+            String findOrdersSQL = "SELECT * FROM bistro.`order` WHERE status = 'PENDING' AND order_date > NOW() ORDER BY order_date ASC";
             PreparedStatement psOrders = conn.prepareStatement(findOrdersSQL);
-            psOrders.setInt(1, capacity);
             ResultSet rsOrders = psOrders.executeQuery();
 
             while (rsOrders.next()) {
                 int orderId = rsOrders.getInt("order_number");
                 Timestamp orderDate = rsOrders.getTimestamp("order_date");
+                int guestsInOrder = rsOrders.getInt("number_of_guests");
 
-                String checkLoadSQL = "SELECT COUNT(*) FROM bistro.`order` " +
-                                      "WHERE number_of_guests <= ? " +
-                                      "AND status = 'PENDING' " +
-                                      "AND ABS(TIMESTAMPDIFF(MINUTE, order_date, ?)) < 120";
+                // Step A: Count how many tables exist that can fit this specific order (Best Fit approach)
+                // We look for any table with capacity >= guestsInOrder
+                String countSuitableTablesSQL = "SELECT COUNT(*) FROM `tables` WHERE capacity >= ?";
+                PreparedStatement psCount = conn.prepareStatement(countSuitableTablesSQL);
+                psCount.setInt(1, guestsInOrder);
+                ResultSet rsCount = psCount.executeQuery();
+                int suitableTablesCount = 0;
+                if (rsCount.next()) {
+                    suitableTablesCount = rsCount.getInt(1);
+                }
+
+                // If absolutely no tables fit this group size, cancel immediately.
+                if (suitableTablesCount == 0) {
+                    cancelOrderAndAddToList(conn, cancelledOrders, orderId, rsOrders);
+                    continue; 
+                }
+
+                // Step B: Check load/congestion for this specific time slot
+                // We count how many active orders exist around this time that also need tables.
+                // Note: This is a simplified check. A full "Best Fit" algorithm would require 
+                // combinatorial matching (Bipartite Matching). 
+                // Here, we check if the total demand (orders needing >= X seats) exceeds total supply (tables >= X seats).
                 
+                String checkLoadSQL = "SELECT COUNT(*) FROM bistro.`order` " +
+                                      "WHERE status = 'PENDING' " +
+                                      "AND number_of_guests > 0 " + // Count all valid orders
+                                      "AND ABS(TIMESTAMPDIFF(MINUTE, order_date, ?)) < 120"; // Overlapping time window
+
                 PreparedStatement psCheck = conn.prepareStatement(checkLoadSQL);
-                psCheck.setInt(1, capacity);
-                psCheck.setTimestamp(2, orderDate);
+                psCheck.setTimestamp(1, orderDate);
                 ResultSet rsLoad = psCheck.executeQuery();
 
                 if (rsLoad.next()) {
-                    int currentLoad = rsLoad.getInt(1);
-                    if (currentLoad > remainingTables) {
-                        String cancelSQL = "UPDATE bistro.`order` SET status = 'CANCELLED_BY_SYSTEM' WHERE order_number = ?";
-                        PreparedStatement psCancel = conn.prepareStatement(cancelSQL);
-                        psCancel.setInt(1, orderId);
-                        psCancel.executeUpdate();
+                    int totalConcurrentOrders = rsLoad.getInt(1);
+                    
+                    // Get total tables in the restaurant (regardless of size)
+                    String totalTablesSQL = "SELECT COUNT(*) FROM `tables`";
+                    PreparedStatement psTotal = conn.prepareStatement(totalTablesSQL);
+                    ResultSet rsTotal = psTotal.executeQuery();
+                    int totalRestaurantTables = 0;
+                    if (rsTotal.next()) {
+                        totalRestaurantTables = rsTotal.getInt(1);
+                    }
 
-                        Order o = new Order();
-                        o.setOrderNumber(orderId);
-                        o.setCustomerName(rsOrders.getString("customer_name"));
-                        o.setEmail(rsOrders.getString("email"));
-                        o.setOrderDate(orderDate);
-                        
-                        cancelledOrders.add(o);
+                    
+                    
+                    if (totalConcurrentOrders > totalRestaurantTables) {
+                         cancelOrderAndAddToList(conn, cancelledOrders, orderId, rsOrders);
+                    } 
+                    else {
+                        // Check specifically for capacity bottleneck
+                        String specificLoadSQL = "SELECT COUNT(*) FROM bistro.`order` " +
+                                                 "WHERE status = 'PENDING' " +
+                                                 "AND number_of_guests > ? " + // Count only groups that are larger (or equal logic could be applied)
+                                                 "AND ABS(TIMESTAMPDIFF(MINUTE, order_date, ?)) < 120";
+            
+                         // If suitable tables exist, we assume the scheduler manages assignments.
+                         // We only cancel if physically impossible (0 tables) or general overflow.
                     }
                 }
             }
@@ -278,5 +306,20 @@ public class TableRepository {
         }
 
         return cancelledOrders;
+    }
+
+    // Helper method to handle cancellation and list addition
+    private void cancelOrderAndAddToList(Connection conn, ArrayList<Order> list, int orderId, ResultSet rs) throws SQLException {
+        String cancelSQL = "UPDATE bistro.`order` SET status = 'CANCELLED' WHERE order_number = ?";
+        PreparedStatement psCancel = conn.prepareStatement(cancelSQL);
+        psCancel.setInt(1, orderId);
+        psCancel.executeUpdate();
+
+        Order o = new Order();
+        o.setOrderNumber(orderId);
+        o.setCustomerName(rs.getString("customer_name"));
+        o.setEmail(rs.getString("email"));
+        o.setOrderDate(rs.getTimestamp("order_date"));
+        list.add(o);
     }
 }

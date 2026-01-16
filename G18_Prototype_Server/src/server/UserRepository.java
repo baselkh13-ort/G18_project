@@ -310,4 +310,26 @@ public class UserRepository {
             if (pConn != null) pool.releaseConnection(pConn);
         }
     }
+    /**
+     * Resets the login status of ALL users to 0 (Disconnected).
+     * This should be called when the server starts to clear "stuck" sessions.
+     */
+    public void resetAllLoginStatus() {
+        String sql = "UPDATE users SET is_logged_in = 0";
+        PooledConnection pConn = null;
+        try {
+            pConn = pool.getConnection();
+            if (pConn == null) return;
+            
+            Connection conn = pConn.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.executeUpdate();
+            System.out.println("[DB] All user login statuses have been reset to 0.");
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (pConn != null) pool.releaseConnection(pConn);
+        }
+    }
 }

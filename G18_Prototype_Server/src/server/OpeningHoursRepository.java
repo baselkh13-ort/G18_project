@@ -170,4 +170,64 @@ public class OpeningHoursRepository {
             if (pConn != null) pool.releaseConnection(pConn);
         }
     }
+    /**
+     * Checks if the restaurant is currently open based on the provided timestamp.
+     * It checks specific dates first, then regular weekly hours.
+     *
+     * @param checkTime The timestamp to check.
+     * @return true if open, false if closed.
+     */
+    public boolean isOpen(java.sql.Timestamp checkTime) {
+        //  Check for specific date override first
+        String specificSQL = "SELECT is_closed, open_time, close_time FROM opening_hours WHERE specific_date = DATE(?)";
+        
+        // Check for regular day of week
+        
+        String daySQL = "SELECT is_closed, open_time, close_time FROM opening_hours WHERE day_of_week = DAYOFWEEK(?) AND specific_date IS NULL";
+
+        PooledConnection pConn = null;
+        try {
+            pConn = pool.getConnection();
+            Connection conn = pConn.getConnection();
+
+            // Check Specific Date
+            PreparedStatement psSpecific = conn.prepareStatement(specificSQL);
+            psSpecific.setTimestamp(1, checkTime);
+            ResultSet rsSpecific = psSpecific.executeQuery();
+
+            if (rsSpecific.next()) {
+                boolean isClosed = rsSpecific.getBoolean("is_closed");
+                if (isClosed) return false; 
+
+                Time open = rsSpecific.getTime("open_time");
+                Time close = rsSpecific.getTime("close_time");
+                Time requestTime = new Time(checkTime.getTime());
+                
+                return requestTime.after(open) && requestTime.before(close);
+            }
+
+            // Check Regular Day
+            PreparedStatement psDay = conn.prepareStatement(daySQL);
+            psDay.setTimestamp(1, checkTime);
+            ResultSet rsDay = psDay.executeQuery();
+
+            if (rsDay.next()) {
+                boolean isClosed = rsDay.getBoolean("is_closed");
+                if (isClosed) return false; 
+
+                Time open = rsDay.getTime("open_time");
+                Time close = rsDay.getTime("close_time");
+                Time requestTime = new Time(checkTime.getTime());
+                
+                return requestTime.after(open) && requestTime.before(close);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (pConn != null) pool.releaseConnection(pConn);
+        }
+        
+        return false; // Default to closed if no schedule found
+    }
 }
