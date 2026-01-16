@@ -16,6 +16,7 @@ public enum ActionType {
     ORDER_ALTERNATIVES,
     SERVER_NOTIFICATION,
     
+    
     ENTER_WAITLIST,
     LEAVE_WAITLIST,
     UPDATE_ORDER_STATUS,
@@ -39,5 +40,6 @@ public enum ActionType {
     GET_ALL_ACTIVE_ORDERS,
     GET_PERFORMANCE_REPORT,  
     GET_SUBSCRIPTION_REPORT, 
+    LOGOUT,
     CLIENT_QUIT
 }

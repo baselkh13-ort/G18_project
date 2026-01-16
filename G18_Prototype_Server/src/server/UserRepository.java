@@ -33,35 +33,55 @@ public class UserRepository {
     }
 
     /**
-     * Authenticates a user by their credentials.
-     * Used when the user clicks "Login".
+     * Authenticates a user.
+     * Enforces "Single User Connection": Checks if the user is already logged in.
+     * If credentials are correct AND user is not logged in, sets is_logged_in = 1.
      *
-     * @param username The unique username.
-     * @param password The user password.
-     * @return The User object if found, null otherwise.
+     * @param username The username.
+     * @param password The password.
+     * @return The User object if login succeeds, null if failed or already connected.
      */
     public User login(String username, String password) {
-        String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+        String selectSQL = "SELECT * FROM users WHERE username = ? AND password = ?";
+        String updateSQL = "UPDATE users SET is_logged_in = 1 WHERE user_id = ?";
+        
         PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();
             if (pConn == null) return null;
 
             Connection conn = pConn.getConnection();
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setString(1, username);
-            ps.setString(2, password);
-            ResultSet rs = ps.executeQuery();
+            
+            //  Check credentials
+            PreparedStatement psSelect = conn.prepareStatement(selectSQL);
+            psSelect.setString(1, username);
+            psSelect.setString(2, password);
+            ResultSet rs = psSelect.executeQuery();
 
             if (rs.next()) {
-                return mapRowToUser(rs);
+                // User found. Now check logic.
+                boolean isAlreadyLoggedIn = rs.getBoolean("is_logged_in");
+                
+                if (isAlreadyLoggedIn) {
+                    System.out.println("[Auth] Blocked login: User " + username + " is already connected.");
+                    return null; // REJECT: Already online
+                }
+
+                //  Mark user as connected (is_logged_in = 1)
+                User user = mapRowToUser(rs);
+                
+                PreparedStatement psUpdate = conn.prepareStatement(updateSQL);
+                psUpdate.setInt(1, user.getUserId());
+                psUpdate.executeUpdate();
+                
+                return user; // SUCCESS
             }
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
             if (pConn != null) pool.releaseConnection(pConn);
         }
-        return null;
+        return null; // REJECT: Wrong password or User not found
     }
 
     /**
@@ -266,5 +286,28 @@ public class UserRepository {
             rs.getString("email"),
             rs.getInt("member_code") 
         );
+    }
+    /**
+     * Logs out a user by updating their login status in the database.
+     * Sets the 'is_logged_in' column to 0.
+     * This allows the user to log in again from a different client later.
+     * * @param userId The unique ID of the user to log out.
+     */
+    public void logoutUser(int userId) {
+        String sql = "UPDATE users SET is_logged_in = 0 WHERE user_id = ?";
+        PooledConnection pConn = null;
+        try {
+            pConn = pool.getConnection();
+            if (pConn == null) return;
+
+            Connection conn = pConn.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, userId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (pConn != null) pool.releaseConnection(pConn);
+        }
     }
 }

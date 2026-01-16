@@ -675,6 +675,22 @@ public class BistroServer extends AbstractServer {
                     responseMsg = new BistroMessage(ActionType.GET_SUBSCRIPTION_REPORT, subReport);
                     log("[Reports] Generated Subscription Report for " + subMonth + "/" + subYear);
                     break;
+                    
+                case LOGOUT:
+                    // Handles the logout request to allow switching users.
+                    if (request.getData() instanceof Integer) {
+                        int userId = (Integer) request.getData();
+                        
+                        //  Update database status to Offline
+                        userRepo.logoutUser(userId); 
+                        
+                        //  Log the event on the server console
+                        log(" User ID " + userId + " logged out.");
+                        
+                        //  Send success message back to client so it can switch scenes
+                        responseMsg = new BistroMessage(ActionType.LOGOUT, "Success");
+                    }
+                    break;
 
                 case CLIENT_QUIT:
                     log("[Server] Client disconnected.");
