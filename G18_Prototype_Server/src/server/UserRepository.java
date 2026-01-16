@@ -96,9 +96,9 @@ public class UserRepository {
      * Required for Mission 7 (Management View) to display the subscriber list.
      * @return An ArrayList of all User objects.
      */
-    public ArrayList<User> getAllUsers() {
+    public ArrayList<User> getAllMembers() {
         ArrayList<User> users = new ArrayList<>();
-        String sql = "SELECT * FROM users";
+        String sql = "SELECT * FROM users WHERE role = 'MEMBER'";
         PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();

@@ -166,7 +166,7 @@ public class BistroServer extends AbstractServer {
                     break;
 
                 case GET_ALL_MEMBERS:
-                    ArrayList<User> allMembers = userRepo.getAllUsers();
+                    ArrayList<User> allMembers = userRepo.getAllMembers();
                     log("[Management] Sending all user records.");
                     responseMsg = new BistroMessage(ActionType.GET_ALL_MEMBERS, allMembers);
                     break;
@@ -224,18 +224,18 @@ public class BistroServer extends AbstractServer {
                         Order order = orderRepo.getOrderByCode(code);
 
                         if (order != null) {
-                            // Try to assign a table
                             int assignedTable = orderRepo.assignFreeTable(order.getOrderNumber(), order.getNumberOfGuests());
 
                             if (assignedTable != -1) {
                                 order.setAssignedTableId(assignedTable);
                                 order.setStatus("SEATED");
                                 responseMsg = new BistroMessage(ActionType.VALIDATE_ARRIVAL, order);
-                                log("[Reception] Code Valid. Seated at Table " + assignedTable);
+                                log("[Reception] Code " + code + " Seated at Table " + assignedTable);
                             } else {
-                                // Code valid, but no table ready yet (Wait)
-                                responseMsg = new BistroMessage(ActionType.VALIDATE_ARRIVAL, "WAIT: No table ready yet.");
-                                log("[Reception] Code Valid, but restaurant full.");
+                                orderRepo.updateOrderStatus(order.getOrderNumber(), "WAITING");
+                                
+                                responseMsg = new BistroMessage(ActionType.VALIDATE_ARRIVAL, "WAIT: No table ready yet. You are now in the waiting list.");
+                                log("[Reception] Code " + code + " moved to WAITING list (Physical Arrival).");
                             }
                         } else {
                             responseMsg = new BistroMessage(ActionType.VALIDATE_ARRIVAL, "ERROR: Invalid Code");
@@ -250,32 +250,57 @@ public class BistroServer extends AbstractServer {
 
                         boolean hasEmail = walkIn.getEmail() != null && !walkIn.getEmail().isEmpty();
                         boolean hasPhone = walkIn.getPhone() != null && !walkIn.getPhone().isEmpty();
+                        
                         if (!hasEmail && !hasPhone) {
                             responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: Must provide Email or Phone");
                             break;
                         }
+
+                        if (orderRepo.hasActiveOrder(walkIn.getPhone(), walkIn.getEmail())) {
+                            responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: You are already in the system (Seated or Waiting).");
+                            log("[Waitlist] Blocked duplicate entry for " + walkIn.getCustomerName());
+                            break; 
+                        }
+
+                        if (walkIn.getOrderDate() == null) {
+                            walkIn.setOrderDate(new java.sql.Timestamp(System.currentTimeMillis()));
+                        }
+
+                        int code;
+                        do {
+                            code = (int) (Math.random() * 9000) + 1000;
+                        } while (orderRepo.isCodeExists(code));
+                        
+                        walkIn.setConfirmationCode(code); 
+
                         if (orderRepo.isTableAvailableNow(walkIn.getNumberOfGuests())) {
                             // Immediate Seating
-                            walkIn.setStatus("SEATED");
-                            walkIn.setConfirmationCode(0);
+                            walkIn.setStatus("SEATED"); 
                             int id = orderRepo.createOrder(walkIn);
-                            // Assign table immediately
-                            int tableId = orderRepo.assignFreeTable(id, walkIn.getNumberOfGuests());
-                            walkIn.setOrderNumber(id);
-                            walkIn.setAssignedTableId(tableId);
+                            
+                            if (id != -1) {
+                                walkIn.setOrderNumber(id);
+                                int tableId = orderRepo.assignFreeTable(id, walkIn.getNumberOfGuests());
+                                walkIn.setAssignedTableId(tableId);
 
-                            log("[Waitlist] Immediate Seating at Table " + tableId);
-                            responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, walkIn);
+                                log("[Waitlist] Walk-in Seated immediately at Table " + tableId);
+                                responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, walkIn);
+                            } else {
+                                responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: DB Creation Failed");
+                            }
+
                         } else {
                             // Add to Waitlist
                             walkIn.setStatus("WAITING");
-                            int code = (int) (Math.random() * 9000) + 1000;
-                            walkIn.setConfirmationCode(code);
                             int id = orderRepo.createOrder(walkIn);
-                            walkIn.setOrderNumber(id);
-
-                            log("[Waitlist] Added to queue. Code: " + code);
-                            responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, walkIn);
+                            
+                            if (id != -1) {
+                                walkIn.setOrderNumber(id);
+                                log("[Waitlist] Added to queue. Code: " + code);
+                                responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, walkIn);
+                            } else {
+                                responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: DB Creation Failed");
+                            }
                         }
                     }
                     break;
@@ -283,7 +308,9 @@ public class BistroServer extends AbstractServer {
                 case LEAVE_WAITLIST:
                     if (request.getData() instanceof Integer) {
                         int confirmationCode = (Integer) request.getData();
+                        
                         boolean success = orderRepo.cancelOrderByCode(confirmationCode);
+                        
                         if (success) {
                             responseMsg = new BistroMessage(ActionType.LEAVE_WAITLIST, "Success");
                             log("[Waitlist] Customer with code " + confirmationCode + " left the queue.");
@@ -318,6 +345,11 @@ public class BistroServer extends AbstractServer {
 
                             if (dbOrder.getStatus().equals("COMPLETED")) {
                                 responseMsg = new BistroMessage(ActionType.PAY_BILL, "ERROR: Order already paid");
+                                break;
+                            }
+                            if (!dbOrder.getStatus().equals("SEATED") && !dbOrder.getStatus().equals("BILLED")) {
+                                responseMsg = new BistroMessage(ActionType.PAY_BILL, "ERROR: You cannot pay before being seated!");
+                                log("[Payment] Blocked payment for order in status: " + dbOrder.getStatus());
                                 break;
                             }
 
@@ -576,7 +608,7 @@ public class BistroServer extends AbstractServer {
                         }
                     }
 
-                    // 5. Send the Report object back to the Client
+                    // Send the Report object back to the Client
                     responseMsg = new BistroMessage(ActionType.GET_PERFORMANCE_REPORT, perfReport);
                     log("[Reports] Generated Performance Report for " + perfMonth + "/" + perfYear);
                     break;

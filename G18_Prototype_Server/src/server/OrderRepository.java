@@ -148,9 +148,9 @@ public class OrderRepository {
      * @return The active Order object if found, or null.
      */
     public Order findOrderByContact(String identifier) {
-        String sql = "SELECT * FROM bistro.`order` WHERE (phone = ? OR email = ?) " +
-                     "AND status IN ('PENDING', 'WAITING', 'NOTIFIED') " +
-                     "AND DATE(order_date) = CURDATE()"; 
+    	String sql = "SELECT * FROM bistro.`order` WHERE (phone = ? OR email = ?) " +
+                "AND status IN ('PENDING', 'WAITING', 'NOTIFIED') " +
+                "AND order_date >= CURDATE()"; 
         
         PooledConnection pConn = null;
         try {
@@ -211,8 +211,7 @@ public class OrderRepository {
                               "WHERE t.capacity >= ? " + 
                               "AND t.status = 'AVAILABLE' LIMIT 1";
 
-        String updateOrderSQL = "UPDATE bistro.`order` SET assigned_table_id = ?, status = 'SEATED' WHERE order_number = ?";
-        String updateTableSQL = "UPDATE `tables` SET status = 'OCCUPIED' WHERE table_id = ?";
+        String updateOrderSQL = "UPDATE bistro.`order` SET assigned_table_id = ?, status = 'SEATED', actual_arrival_time = NOW() WHERE order_number = ?";        String updateTableSQL = "UPDATE `tables` SET status = 'OCCUPIED' WHERE table_id = ?";
         
         PooledConnection pConn = null;
         try {
@@ -364,8 +363,7 @@ public class OrderRepository {
         }
         Integer tableId = order.getAssignedTableId();
         //COMPLETED
-        String sqlOrder = "UPDATE bistro.`order` SET total_price = ?, status = 'COMPLETED', assigned_table_id = NULL " +
-                          "WHERE order_number = ?";
+        String sqlOrder = "UPDATE bistro.`order` SET total_price = ?, status = 'COMPLETED', assigned_table_id = NULL, actual_leave_time = NOW() WHERE order_number = ?";
         //AVAILABLE 	
         String sqlTable = "UPDATE `tables` SET status = 'AVAILABLE' WHERE table_id = ?";
 
@@ -481,9 +479,9 @@ public class OrderRepository {
                                "AND TIMESTAMPDIFF(MINUTE, order_date, NOW()) > ? " +
                                "AND assigned_table_id IS NOT NULL";
 
-        String cancelOrdersSQL = "UPDATE bistro.`order` SET status = 'CANCELLED', assigned_table_id = NULL " +
-                                 "WHERE (status = 'PENDING' OR status = 'NOTIFIED') " +
-                                 "AND TIMESTAMPDIFF(MINUTE, order_date, NOW()) > ?";
+        String cancelOrdersSQL = "UPDATE bistro.`order` SET status = 'NO_SHOW', assigned_table_id = NULL " +
+                "WHERE (status = 'PENDING' OR status = 'NOTIFIED') " +
+                "AND TIMESTAMPDIFF(MINUTE, order_date, NOW()) > ?";
 
         String freeTableSQL = "UPDATE `tables` SET status = 'AVAILABLE' WHERE table_id = ?";
 
@@ -760,6 +758,9 @@ public class OrderRepository {
         
         o.setCustomerName(rs.getString("customer_name"));
         
+        o.setActualArrivalTime(rs.getTimestamp("actual_arrival_time"));
+        o.setActualLeaveTime(rs.getTimestamp("actual_leave_time"));
+        
         o.setAssignedTableId(rs.getInt("assigned_table_id"));
         if (rs.wasNull()) o.setAssignedTableId(null);
         
@@ -773,31 +774,55 @@ public class OrderRepository {
      * @param year The year to analyze.
      * @return A map where Key is the category and Value is the count.
      */
+
     public Map<String, Integer> getPerformanceReportData(int month, int year) {
         Map<String, Integer> data = new HashMap<>();
         
-        String sqlLate = "SELECT COUNT(*) FROM bistro.`order` " +
-                         "WHERE status = 'CANCELLED' AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
-                         
-        String sqlOnTime = "SELECT COUNT(*) FROM bistro.`order` " +
-                           "WHERE status = 'COMPLETED' AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
+        String sqlCompleted = "SELECT COUNT(*) FROM bistro.`order` " +
+                              "WHERE status = 'COMPLETED' AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
+
+        String sqlNoShow = "SELECT COUNT(*) FROM bistro.`order` " +
+                           "WHERE status = 'NO_SHOW' AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
+
+        String sqlCancelled = "SELECT COUNT(*) FROM bistro.`order` " +
+                              "WHERE status = 'CANCELLED' AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
 
         PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();
-            if (pConn == null) return data;
+            Connection conn = pConn.getConnection(); 
+
             
-            PreparedStatement ps1 = pConn.getConnection().prepareStatement(sqlLate);
+            PreparedStatement ps1 = conn.prepareStatement(sqlCompleted);
             ps1.setInt(1, month);
             ps1.setInt(2, year);
             ResultSet rs1 = ps1.executeQuery();
-            if (rs1.next()) data.put("Late/Cancelled", rs1.getInt(1));
+            if (rs1.next()) data.put("Completed Visits", rs1.getInt(1));
 
-            PreparedStatement ps2 = pConn.getConnection().prepareStatement(sqlOnTime);
+            PreparedStatement ps2 = conn.prepareStatement(sqlNoShow);
             ps2.setInt(1, month);
             ps2.setInt(2, year);
             ResultSet rs2 = ps2.executeQuery();
-            if (rs2.next()) data.put("On-Time", rs2.getInt(1));
+            if (rs2.next()) data.put("No-Shows (>15 min late)", rs2.getInt(1));
+            
+            PreparedStatement ps3 = conn.prepareStatement(sqlCancelled);
+            ps3.setInt(1, month);
+            ps3.setInt(2, year);
+            ResultSet rs3 = ps3.executeQuery();
+            if (rs3.next()) data.put("Voluntary Cancellations", rs3.getInt(1));
+
+            String sqlAvgDelay = "SELECT AVG(TIMESTAMPDIFF(MINUTE, order_date, actual_arrival_time)) " +
+                                 "FROM bistro.`order` WHERE status = 'COMPLETED' " +
+                                 "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
+                                 "AND actual_arrival_time > order_date";
+                                 
+            PreparedStatement ps4 = conn.prepareStatement(sqlAvgDelay);
+            ps4.setInt(1, month);
+            ps4.setInt(2, year);
+            ResultSet rs4 = ps4.executeQuery();
+            if (rs4.next()) {
+                 data.put("Avg Delay (min)", (int) rs4.getDouble(1)); 
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -806,7 +831,6 @@ public class OrderRepository {
         }
         return data;
     }
-
     /**
      * Generates data for the Subscription/Visits Report.
      * Counts total orders per day for the specified month.
@@ -907,6 +931,34 @@ public class OrderRepository {
         }
         
         return cancelledList; 
+    }
+    /**
+     * Checks if a customer already has an active order (SEATED, WAITING, PENDING) for today.
+     * Prevents double booking or entering waitlist while seated.
+     */
+    public boolean hasActiveOrder(String phone, String email) {
+        String sql = "SELECT order_number FROM bistro.`order` " +
+                     "WHERE (phone = ? OR email = ?) " +
+                     "AND status IN ('SEATED', 'WAITING', 'PENDING', 'NOTIFIED') " +
+                     "AND DATE(order_date) = CURDATE()";
+        
+        PooledConnection pConn = null;
+        try {
+            pConn = pool.getConnection();
+            PreparedStatement ps = pConn.getConnection().prepareStatement(sql);
+            ps.setString(1, phone);
+            ps.setString(2, email);
+            
+            ResultSet rs = ps.executeQuery();
+            // If we found a row, it means they are already in the system
+            return rs.next(); 
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (pConn != null) pool.releaseConnection(pConn);
+        }
     }
    
 }
