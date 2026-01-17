@@ -14,11 +14,11 @@ import common.Order;
  * It contains all the SQL queries used to create, read, update, and delete orders.
  * It is used by the Server Controller and the Logic classes to access the MySQL database.
  *
- * UI Components:
- * This class provides the data shown in almost every screen of the application:
- * - The Dashboard (Active orders)
- * - Order History screen
- * - Report screens (Performance and Subscription data)
+ * Key Functionalities:
+ * - Creating and retrieving orders.
+ * - Managing waitlists and table assignments.
+ * - Generating statistical data for reports.
+ * - Handling automated tasks (cancellations, reminders)
  *
  * @author Dana Zablev
  * @version 1.0
@@ -139,7 +139,8 @@ public class OrderRepository {
      * @return The Order object if valid and not cancelled, or null.
      */
     public Order getOrderByCode(int code) {
-        String sql = "SELECT * FROM bistro.`order` WHERE confirmation_code = ? AND status != 'CANCELLED'";
+    		String sql = "SELECT * FROM bistro.`order` WHERE confirmation_code = ? " +
+    					"AND status IN ('PENDING', 'NOTIFIED', 'WAITING', 'SEATED', 'BILLED')";
         PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();
@@ -492,48 +493,70 @@ public class OrderRepository {
     }
 
     /**
-     * Cancels orders where the customer is late by more than the specified minutes.
+     * Cancels orders where the customer is late OR waiting too long.
+     * * Logic:
+     * 1. WAITING customers -> Status becomes 'CANCELLED' (did not get a table).
+     * 2. PENDING/NOTIFIED customers -> Status becomes 'NO_SHOW' (did not arrive).
+     * 3. Frees any tables that were assigned to NO_SHOW customers.
      *
      * @param minutesThreshold Time allowed before cancellation (e.g., 15 mins).
-     * @return Number of orders cancelled.
+     * @return Total number of orders cancelled.
      */
     public int cancelLateOrders(int minutesThreshold) {
+        int totalCanceled = 0;
+        PooledConnection pConn = null;
+
+        //  Handle WAITING list (Change to CANCELLED)
+        String cancelWaitingSQL = "UPDATE bistro.`order` SET status = 'CANCELLED' " +
+                                  "WHERE status = 'WAITING' " +
+                                  "AND TIMESTAMPDIFF(MINUTE, order_date, NOW()) > ?";
+
+        //  Find tables to free for NO_SHOWs (PENDING/NOTIFIED only)
         String findTablesSQL = "SELECT assigned_table_id FROM bistro.`order` " +
                                "WHERE (status = 'PENDING' OR status = 'NOTIFIED') " +
                                "AND TIMESTAMPDIFF(MINUTE, order_date, NOW()) > ? " +
                                "AND assigned_table_id IS NOT NULL";
 
-        String cancelOrdersSQL = "UPDATE bistro.`order` SET status = 'NO_SHOW', assigned_table_id = NULL " +
-                "WHERE (status = 'PENDING' OR status = 'NOTIFIED') " +
-                "AND TIMESTAMPDIFF(MINUTE, order_date, NOW()) > ?";
+        //  Handle Late Arrivals (Change to NO_SHOW)
+        String cancelNoShowSQL = "UPDATE bistro.`order` SET status = 'NO_SHOW', assigned_table_id = NULL " +
+                                 "WHERE (status = 'PENDING' OR status = 'NOTIFIED') " +
+                                 "AND TIMESTAMPDIFF(MINUTE, order_date, NOW()) > ?";
 
         String freeTableSQL = "UPDATE `tables` SET status = 'AVAILABLE' WHERE table_id = ?";
-
-        PooledConnection pConn = null;
-        int canceledCount = 0;
 
         try {
             pConn = pool.getConnection();
             Connection conn = pConn.getConnection();
-            
-            PreparedStatement psFind = conn.prepareStatement(findTablesSQL);
-            psFind.setInt(1, minutesThreshold);
-            ResultSet rs = psFind.executeQuery();
-            
-            ArrayList<Integer> tablesToFree = new ArrayList<>();
-            while (rs.next()) {
-                tablesToFree.add(rs.getInt("assigned_table_id"));
+
+            //  Cancel WAITING customers
+            try (PreparedStatement psWaiting = conn.prepareStatement(cancelWaitingSQL)) {
+                psWaiting.setInt(1, minutesThreshold);
+                totalCanceled += psWaiting.executeUpdate();
             }
 
-            PreparedStatement psCancel = conn.prepareStatement(cancelOrdersSQL);
-            psCancel.setInt(1, minutesThreshold);
-            canceledCount = psCancel.executeUpdate();
+            //  Collect tables to free (only for PENDING/NOTIFIED)
+            ArrayList<Integer> tablesToFree = new ArrayList<>();
+            try (PreparedStatement psFind = conn.prepareStatement(findTablesSQL)) {
+                psFind.setInt(1, minutesThreshold);
+                ResultSet rs = psFind.executeQuery();
+                while (rs.next()) {
+                    tablesToFree.add(rs.getInt("assigned_table_id"));
+                }
+            }
 
+            //  Cancel PENDING/NOTIFIED customers (NO_SHOW)
+            try (PreparedStatement psNoShow = conn.prepareStatement(cancelNoShowSQL)) {
+                psNoShow.setInt(1, minutesThreshold);
+                totalCanceled += psNoShow.executeUpdate();
+            }
+
+            //  Free the tables
             if (!tablesToFree.isEmpty()) {
-                PreparedStatement psFree = conn.prepareStatement(freeTableSQL);
-                for (int tableId : tablesToFree) {
-                    psFree.setInt(1, tableId);
-                    psFree.executeUpdate();
+                try (PreparedStatement psFree = conn.prepareStatement(freeTableSQL)) {
+                    for (int tableId : tablesToFree) {
+                        psFree.setInt(1, tableId);
+                        psFree.executeUpdate();
+                    }
                 }
             }
 
@@ -542,7 +565,8 @@ public class OrderRepository {
         } finally {
             if (pConn != null) pool.releaseConnection(pConn);
         }
-        return canceledCount;
+        
+        return totalCanceled; // Returns total count so Scheduler can log it
     }
     
     /**
@@ -833,39 +857,35 @@ public class OrderRepository {
         Connection conn = null;
         PooledConnection pConn = null;
 
-        // --- SQL QUERIES ---
-
-        // 1. Avg Arrival Lateness (Min): (actual_arrival_time - order_date)
-        // Calculated ONLY for those who arrived late (actual > order)
-        String sqlAvgArrivalLateness = "SELECT AVG(TIMESTAMPDIFF(MINUTE, order_date, actual_arrival_time)) " +
+        //  Avg Arrival Lateness: Includes everyone (on-time arrivals count as 0)
+        String sqlAvgArrivalLateness = "SELECT AVG(GREATEST(0, TIMESTAMPDIFF(MINUTE, order_date, actual_arrival_time))) " +
                                        "FROM bistro.`order` " +
                                        "WHERE (status = 'COMPLETED' OR status = 'SEATED') " +
-                                       "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
-                                       "AND actual_arrival_time > order_date";
+                                       "AND actual_arrival_time IS NOT NULL " + 
+                                       "AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
 
-        // 2. Avg Stay Duration (Min): (actual_leave_time - actual_arrival_time)
+        //  Avg Stay Duration: (Actual Leave - Actual Arrival)
         String sqlAvgStayDuration = "SELECT AVG(TIMESTAMPDIFF(MINUTE, actual_arrival_time, actual_leave_time)) " +
                                     "FROM bistro.`order` " +
                                     "WHERE status = 'COMPLETED' " +
-                                    "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
-                                    "AND actual_leave_time IS NOT NULL";
+                                    "AND actual_arrival_time IS NOT NULL AND actual_leave_time IS NOT NULL " +
+                                    "AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
 
-        // 3. Avg Departure Delay (Min): Time beyond 120 minutes
-        // Logic: (actual_leave_time - (actual_arrival_time + 120 minutes))
-        // Only considers those who stayed longer than 120 minutes
-        String sqlAvgDepartureDelay = "SELECT AVG(TIMESTAMPDIFF(MINUTE, DATE_ADD(actual_arrival_time, INTERVAL 120 MINUTE), actual_leave_time)) " +
+        //  Avg Departure Delay: Time beyond 120 minutes (No delay counts as 0)
+        String sqlAvgDepartureDelay = "SELECT AVG(GREATEST(0, TIMESTAMPDIFF(MINUTE, actual_arrival_time, actual_leave_time) - 120)) " +
                                       "FROM bistro.`order` " +
                                       "WHERE status = 'COMPLETED' " +
-                                      "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
-                                      "AND TIMESTAMPDIFF(MINUTE, actual_arrival_time, actual_leave_time) > 120";
+                                      "AND actual_arrival_time IS NOT NULL AND actual_leave_time IS NOT NULL " +
+                                      "AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
 
-        // 4. Late Arrivals Count: Count where arrival was > 15 minutes late
+        //  Late Arrivals Count: Only counts significant delays (> 15 min)
         String sqlLateArrivalsCount = "SELECT COUNT(*) FROM bistro.`order` " +
                                       "WHERE (status = 'COMPLETED' OR status = 'SEATED') " +
-                                      "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
-                                      "AND TIMESTAMPDIFF(MINUTE, order_date, actual_arrival_time) > 15";
+                                      "AND actual_arrival_time IS NOT NULL " +
+                                      "AND TIMESTAMPDIFF(MINUTE, order_date, actual_arrival_time) > 15 " +
+                                      "AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
 
-        // 5. Basic Counts (Waitlist & Completed)
+        //  General Counts (Waitlist & Total Completed)
         String sqlCompleted = "SELECT COUNT(*) FROM bistro.`order` WHERE status = 'COMPLETED' AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
         String sqlWaitlist  = "SELECT COUNT(*) FROM bistro.`order` WHERE entered_waitlist = 1 AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
 
@@ -892,7 +912,17 @@ public class OrderRepository {
         return data;
     }
 
-    // Helper for Average Queries
+    /**
+    * Helper method to execute an Average SQL query and store result in the map.
+    *
+    * @param conn The database connection.
+    * @param sql The SQL query string.
+    * @param month The month parameter.
+    * @param year The year parameter.
+    * @param key The key to store in the map.
+    * @param data The map to store the result.
+    * @throws SQLException If a database error occurs.
+    */
     private void executeAvgQuery(Connection conn, String sql, int month, int year, String key, Map<String, Integer> data) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, month);
@@ -908,7 +938,17 @@ public class OrderRepository {
         }
     }
 
-    // Helper for Count Queries
+    /**
+     * Helper method to execute a Count SQL query and store result in the map.
+     *
+     * @param conn The database connection.
+     * @param sql The SQL query string.
+     * @param month The month parameter.
+     * @param year The year parameter.
+     * @param key The key to store in the map.
+     * @param data The map to store the result.
+     * @throws SQLException If a database error occurs.
+     */
     private void executeCountQuery(Connection conn, String sql, int month, int year, String key, Map<String, Integer> data) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, month);
@@ -933,13 +973,13 @@ public class OrderRepository {
     public Map<String, Integer> getSubscriptionReportData(int month, int year) {
         Map<String, Integer> data = new HashMap<>();
         
-        // 1. Count Subscriber Orders per day
+        //  Count Subscriber Orders per day
         String sqlOrders = "SELECT DAY(order_date) as day, COUNT(*) as count FROM bistro.`order` " +
                            "WHERE subscriber_id IS NOT NULL " + 
                            "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
                            "GROUP BY DAY(order_date)";
 
-        // 2. Count Subscriber Waitlist entries per day
+        //  Count Subscriber Waitlist entries per day
         String sqlWaitlist = "SELECT DAY(order_date) as day, COUNT(*) as count FROM bistro.`order` " +
                              "WHERE subscriber_id IS NOT NULL " + 
                              "AND entered_waitlist = 1 " +        
@@ -1080,7 +1120,7 @@ public class OrderRepository {
             ps.setString(6, email);
             
             ResultSet rs = ps.executeQuery();
-            return rs.next(); // מחזיר true רק אם נמצאה התאמה אמיתית
+            return rs.next(); 
             
         } catch (SQLException e) {
             e.printStackTrace();

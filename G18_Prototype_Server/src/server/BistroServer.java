@@ -301,46 +301,34 @@ public class BistroServer extends AbstractServer {
                     if (canceled) {
                         responseMsg = new BistroMessage(ActionType.CANCEL_ORDER, "Success");
                     } else {
-                        responseMsg = new BistroMessage(ActionType.CANCEL_ORDER, "Code not found");
+                        responseMsg = new BistroMessage(ActionType.CANCEL_ORDER, "SEATED status can not be cancelled");
                     }
                     break;
 
                 // Reception, Arrival & Seating
 
                 case VALIDATE_ARRIVAL:
-                    // Checks in a customer. If table available -> SEATED. Else -> WAITING.
-                    if (request.getData() instanceof Integer) {
-                        
-                        // Check if the restaurant is currently OPEN before processing arrival
-                        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
-                        if (!hoursRepo.isOpen(currentTime)) {
-                            responseMsg = new BistroMessage(ActionType.VALIDATE_ARRIVAL, "Error: Restaurant is CLOSED at this time.");
-                            break; 
-                        }
+                    int code = (Integer) request.getData();
+                    Order order = orderRepo.getOrderByCode(code); 
 
-                        int code = (Integer) request.getData();
-                        Order order = orderRepo.getOrderByCode(code);
+                    if (order != null) {
+                        int assignedTable = orderRepo.assignFreeTable(order.getOrderNumber(), order.getNumberOfGuests());
 
-                        if (order != null) {
-                            int assignedTable = orderRepo.assignFreeTable(order.getOrderNumber(), order.getNumberOfGuests());
-
-                            if (assignedTable != -1) {
-                                order.setAssignedTableId(assignedTable);
-                                order.setStatus("SEATED");
-                                responseMsg = new BistroMessage(ActionType.VALIDATE_ARRIVAL, order);
-                                log("[Reception] Code " + code + " Seated at Table " + assignedTable);
-                            } else {
-                                orderRepo.updateOrderStatus(order.getOrderNumber(), "WAITING");
-                                
-                                responseMsg = new BistroMessage(ActionType.VALIDATE_ARRIVAL, "WAIT: No table ready yet. You are now in the waiting list.");
-                                log("[Reception] Code " + code + " moved to WAITING list (Physical Arrival).");
-                            }
+                        if (assignedTable != -1) {
+                            order.setAssignedTableId(assignedTable);
+                            order.setStatus("SEATED");
+                            responseMsg = new BistroMessage(ActionType.VALIDATE_ARRIVAL, order);
                         } else {
-                            responseMsg = new BistroMessage(ActionType.VALIDATE_ARRIVAL, "ERROR: Invalid Code");
+                            if ("PENDING".equals(order.getStatus()) || "NOTIFIED".equals(order.getStatus())) {
+                                orderRepo.updateOrderStatus(order.getOrderNumber(), "WAITING");
+                                order.setStatus("WAITING");
+                            }
+                            responseMsg = new BistroMessage(ActionType.VALIDATE_ARRIVAL, order);
                         }
+                    } else {
+                        responseMsg = new BistroMessage(ActionType.VALIDATE_ARRIVAL, "ERROR: Code not found or already used");
                     }
                     break;
-
                 //Waitlist Management (Walk-ins)
 
                 case ENTER_WAITLIST:
@@ -356,17 +344,18 @@ public class BistroServer extends AbstractServer {
                         }
                         String cleanPhone = (walkIn.getPhone() != null) ? walkIn.getPhone().trim() : "";
                         String cleanEmail = (walkIn.getEmail() != null) ? walkIn.getEmail().trim() : "";
-
-                        if (orderRepo.hasActiveOrder(walkIn.getPhone(), walkIn.getEmail())) {
-                            responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: You are already in the system.");
+                        
+                        walkIn.setPhone(cleanPhone);
+                        walkIn.setEmail(cleanEmail);
+                        if (orderRepo.hasActiveOrder(cleanPhone, cleanEmail)) {                            responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: You are already in the system.");
                             break; 
                         }
 
-                        int code;
+                        int code1;
                         do {
-                            code = (int) (Math.random() * 9000) + 1000;
-                        } while (orderRepo.isCodeExists(code));
-                        walkIn.setConfirmationCode(code); 
+                            code1 = (int) (Math.random() * 9000) + 1000;
+                        } while (orderRepo.isCodeExists(code1));
+                        walkIn.setConfirmationCode(code1); 
 
                         if (orderRepo.isTableAvailableNow(walkIn.getNumberOfGuests())) {
                             walkIn.setStatus("SEATED"); 
@@ -389,7 +378,7 @@ public class BistroServer extends AbstractServer {
                             if (orderId != -1) {
                                 walkIn.setOrderNumber(orderId);
                                 responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, walkIn);
-                                log("[Waitlist] No tables. Added to WAITING list. Code: " + code);
+                                log("[Waitlist] No tables. Added to WAITING list. Code: " + code1);
                             } else {
                                 responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: DB Save Failed");
                             }
@@ -421,7 +410,7 @@ public class BistroServer extends AbstractServer {
                             log("[SMS Simulation] Restored Code " + found.getConfirmationCode() + " sent to " + contact);
                             responseMsg = new BistroMessage(ActionType.RESTORE_CODE, found);
                         } else {
-                            responseMsg = new BistroMessage(ActionType.RESTORE_CODE, "ERROR: Not found");
+                            responseMsg = new BistroMessage(ActionType.RESTORE_CODE, "ERROR: Can not restore");
                         }
                     }
                     break;
@@ -475,7 +464,7 @@ public class BistroServer extends AbstractServer {
                                         orderRepo.updateOrderStatus(nextPerson.getOrderNumber(), "NOTIFIED");
                                         orderRepo.updateOrderTime(nextPerson.getOrderNumber());
 
-                                        String smsMessage = "Hi " + nextPerson.getPhone() + ", table for " +
+                                        String smsMessage = "Hi " + nextPerson.getCustomerName()+ nextPerson.getPhone() + ", table for " +
                                                 nextPerson.getNumberOfGuests() + " is ready! 15 mins to arrive.";
 
                                         BistroMessage notifyMsg = new BistroMessage(ActionType.SERVER_NOTIFICATION, smsMessage);
@@ -608,12 +597,38 @@ public class BistroServer extends AbstractServer {
                 case UPDATE_TABLE:
                     if (request.getData() instanceof Table) {
                         Table tableToUpdate = (Table) request.getData();
-                        boolean success = tableRepo.updateTable(tableToUpdate);
-                        if (success) {
-                            log("[Management] Updated Table #" + tableToUpdate.getTableId());
-                            responseMsg = new BistroMessage(ActionType.UPDATE_TABLE, "Success");
+                     // Execute update and retrieve list of conflicts (if any)
+                        ArrayList<Order> cancelledList = tableRepo.updateTableSafely(tableToUpdate);
+
+                        if (cancelledList != null) {
+                        	// Construct the report message for the Manager
+                            StringBuilder clientResponse = new StringBuilder();
+                            clientResponse.append("Success. Table #").append(tableToUpdate.getTableId()).append(" updated.\n");
+
+                            if (cancelledList.isEmpty()) {
+                                clientResponse.append("No future orders were affected.");
+                                log("[Management] Updated Table " + tableToUpdate.getTableId() + ". No conflicts.");
+                            } else {
+                                clientResponse.append("WARNING: ").append(cancelledList.size()).append(" orders cancelled due to capacity change!\n\n");
+                                clientResponse.append("--- Notifications Sent ---\n");
+                                
+                                log("[System] Table updated. Found " + cancelledList.size() + " conflicts.");
+                                
+                             // Simulate SMS/Email for each cancelled customer
+                                for (Order o : cancelledList) {
+                                    String logMsg = "SMS sent to: " + o.getEmail() + 
+                                                  " (Customer: " + o.getCustomerName() + 
+                                                  ", Order #" + o.getOrderNumber() + ")";
+                                    
+                                    log("[SIMULATION] " + logMsg);
+                                    clientResponse.append("- ").append(logMsg).append("\n");
+                                }
+                            }
+                            
+                            responseMsg = new BistroMessage(ActionType.UPDATE_TABLE, clientResponse.toString());
                         } else {
-                            responseMsg = new BistroMessage(ActionType.UPDATE_TABLE, "Failed");
+                        		// Return error if table ID not found or table is OCCUPIED
+                            responseMsg = new BistroMessage(ActionType.UPDATE_TABLE, "Failed: Table ID not found or OCCUPIED.");
                         }
                     }
                     break;
@@ -660,7 +675,7 @@ public class BistroServer extends AbstractServer {
                                 }
                             }
                             
-                            // 3. Send the full report back to the client
+                            //  Send the full report back to the client
                             responseMsg = new BistroMessage(ActionType.UPDATE_OPENING_HOURS, clientResponse.toString());
                             
                         } else {
@@ -672,8 +687,8 @@ public class BistroServer extends AbstractServer {
 
                 case GET_ORDER_BY_CODE:
                     if (request.getData() instanceof Integer) {
-                        int code = (Integer) request.getData();
-                        common.Order foundOrder = orderRepo.getOrderByCode(code);
+                        int code1 = (Integer) request.getData();
+                        common.Order foundOrder = orderRepo.getOrderByCode(code1);
 
                         if (foundOrder != null) {
                             int guests = foundOrder.getNumberOfGuests();

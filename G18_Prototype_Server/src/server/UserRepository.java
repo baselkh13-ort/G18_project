@@ -275,17 +275,22 @@ public class UserRepository {
      * @throws SQLException if data retrieval fails.
      */
     private User mapRowToUser(ResultSet rs) throws SQLException {
-        return new User(
-            rs.getInt("user_id"),
-            rs.getString("username"),
-            rs.getString("password"),
-            rs.getString("first_name"),
-            rs.getString("last_name"),
-            Role.valueOf(rs.getString("role")),
-            rs.getString("phone"),
-            rs.getString("email"),
-            rs.getInt("member_code") 
-        );
+        User user = new User();
+        
+        user.setUserId(rs.getInt("user_id"));
+        user.setUsername(rs.getString("username"));
+        user.setPassword(rs.getString("password"));
+        user.setFirstName(rs.getString("first_name"));
+        user.setLastName(rs.getString("last_name"));
+        
+        user.setRole(Role.valueOf(rs.getString("role")));
+        
+        user.setPhone(rs.getString("phone"));
+        user.setEmail(rs.getString("email"));
+        
+        user.setMemberCode(rs.getInt("member_code")); 
+        
+        return user;
     }
     /**
      * Logs out a user by updating their login status in the database.
