@@ -1,0 +1,6 @@
+.root { -fx-background-color: #ecf0f1; }
+.action-button { -fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold; }
+.action-button:hover { -fx-background-color: #3498db; }
+.close-button { -fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; }
+.close-button:hover { -fx-background-color: #c0392b; }
+.chart { -fx-background-color: white; -fx-background-radius: 5px; }

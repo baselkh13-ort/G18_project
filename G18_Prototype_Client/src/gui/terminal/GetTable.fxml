@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="550.0" prefWidth="550.0" styleClass="root" stylesheets="@Terminal.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="gui.terminal.GetTableController">
+   <children>
+      <Label layoutX="120.0" layoutY="30.0" styleClass="header-label" text="Get Your Table" />
+      
+      <VBox layoutX="75.0" layoutY="100.0" prefWidth="400.0" spacing="15.0">
+         
+         <Label fx:id="lblInstruction" text="Enter your Order Confirmation Code:" textFill="WHITE" wrapText="true">
+            <font><Font size="16.0" /></font>
+         </Label>
+
+         <ComboBox fx:id="cmbMyOrders" prefHeight="40.0" prefWidth="400.0" promptText="Select from your active orders" visible="false" managed="false" />
+         
+         <TextField fx:id="txtCode" alignment="CENTER" prefHeight="50.0" promptText="e.g. 1234">
+            <font><Font name="System Bold" size="20.0" /></font>
+         </TextField>
+
+         <Label fx:id="lblStatus" alignment="CENTER" prefHeight="40.0" prefWidth="400.0" textFill="#f1c40f" wrapText="true" />
+         
+         <VBox fx:id="resultBox" alignment="CENTER" spacing="5.0" visible="false" style="-fx-background-color: #27ae60; -fx-background-radius: 10; -fx-padding: 10;">
+             <Label text="Your Table Number:" textFill="WHITE" />
+             <Label text="--" textFill="WHITE"> <font><Font name="System Bold" size="48.0" /></font>
+             </Label>
+         </VBox>
+
+         <Button fx:id="btnCheckIn" mnemonicParsing="false" onAction="#checkIn" prefHeight="60.0" prefWidth="400.0" styleClass="terminal-button" text="Check In" />
+         
+         <Button fx:id="btnLostCode" mnemonicParsing="false" onAction="#lostCode" styleClass="secondary-action-button" text="Lost Code?" />
+         
+         <Button fx:id="btnClose" mnemonicParsing="false" onAction="#closeWindow" alignment="CENTER" maxWidth="Infinity" styleClass="secondary-button" text="Cancel / Back" />
+         
+      </VBox>
+   </children>
+</AnchorPane>

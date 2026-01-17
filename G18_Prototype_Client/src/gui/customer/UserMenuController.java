@@ -9,6 +9,7 @@ import common.ActionType;
 import common.BistroMessage;
 import common.Role;
 import common.User;
+import gui.utils.AbstractBistroController;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -19,18 +20,14 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
-import logic.ScreenMode;
 
 /**
- * UserMenuController controls the main navigation menu for the Bistro
- * application.
- * <p>
+ * UserMenuController controls the main navigation menu for the Bistro application.
  * This controller handles the dashboard presented to the member after a
  * successful login (or guest entry). It adjusts the visibility of buttons based
  * on the user's role (Member vs. Guest).
- * </p>
  */
-public class UserMenuController implements Initializable {
+public class UserMenuController extends AbstractBistroController implements Initializable {
 
 	/** Label to display a welcome message with the user's name or "Guest". */
 	@FXML
@@ -55,15 +52,13 @@ public class UserMenuController implements Initializable {
 	private Button btnPayBill;
 	@FXML
 	private Button btnExit;
-	
+
 	/**
 	 * Initializes the controller class. This method is automatically called after
 	 * the FXML file has been loaded.
-	 * <p>
 	 * It checks the currently logged-in user's role via {@link ChatClient#user}. If
 	 * the user is a Guest (or null), it hides member-specific features (Update
 	 * Order, Digital Card).
-	 * </p>
 	 *
 	 * @param location  The location used to resolve relative paths for the root
 	 *                  object, or null if unknown.
@@ -82,11 +77,11 @@ public class UserMenuController implements Initializable {
 			lblWelcome.setText("Welcome, Guest");
 			// Hide member-exclusive buttons
 			btnHistory.setVisible(false);
-		    btnHistory.setManaged(false);
-		    
+			btnHistory.setManaged(false);
+
 			btnDigitalCard.setVisible(false);
 			btnDigitalCard.setManaged(false);
-			
+
 			btnEditProfile.setVisible(false);
 			btnEditProfile.setManaged(false);
 		}
@@ -127,7 +122,6 @@ public class UserMenuController implements Initializable {
 	@FXML
 	public void clickNewOrder(ActionEvent event) throws Exception {
 		System.out.println("Selected: New Order");
-		ClientUI.currentMode = ScreenMode.CREATE;
 
 		// Hide current window
 		((Node) event.getSource()).getScene().getWindow().hide();
@@ -158,7 +152,6 @@ public class UserMenuController implements Initializable {
 	@FXML
 	public void clickCancelOrder(ActionEvent event) throws Exception {
 		System.out.println("Selected: Cancel Order");
-		ClientUI.currentMode = ScreenMode.CANCEL;
 		// Hide current window
 		((Node) event.getSource()).getScene().getWindow().hide();
 		Stage primaryStage = new Stage();
@@ -173,19 +166,16 @@ public class UserMenuController implements Initializable {
 
 	/**
 	 * Handles the "Exit Waitlist" button click event.
-	 * <p>
+	 *
 	 * This method facilitates the navigation from the main Customer Menu to the
 	 * "Exit Waitlist" screen. It performs the following actions:
-	 * <ul>
-	 * <li>Hides the current window (Customer Menu).</li>
-	 * <li>Loads the FXML layout for the Exit Waitlist screen.</li>
-	 * <li>Applies the corresponding CSS stylesheet.</li>
-	 * <li>Displays the new screen in a new Stage.</li>
-	 * </ul>
-	 * </p>
+	 * - Hides the current window (Customer Menu).
+	 * - Loads the FXML layout for the Exit Waitlist screen.
+	 * - Applies the corresponding CSS stylesheet.
+	 * - Displays the new screen in a new Stage.
 	 *
 	 * @param event The ActionEvent triggered by clicking the button; used to
-	 *              retrieve the current window.
+	 * retrieve the current window.
 	 */
 	@FXML
 	public void clickExitWaitList(ActionEvent event) {
@@ -217,10 +207,8 @@ public class UserMenuController implements Initializable {
 
 	/**
 	 * Handles the "Pay Bill" button click event.
-	 * <p>
 	 * Opens the Payment screen where customers (both Members and Guests) can pay
 	 * their bill remotely using their order confirmation code.
-	 * </p>
 	 *
 	 * @param event The ActionEvent triggered by the button.
 	 */
@@ -248,44 +236,53 @@ public class UserMenuController implements Initializable {
 			System.out.println("Error loading Payment screen");
 		}
 	}
-	
+
 	@FXML
 	public void clickHistory(ActionEvent event) {
-	    try {
-	        ((Node) event.getSource()).getScene().getWindow().hide();
-	        Stage primaryStage = new Stage();
-	        Parent root = FXMLLoader.load(getClass().getResource("/gui/customer/OrderHistory.fxml"));
-	        Scene scene = new Scene(root);
-	        scene.getStylesheets().add(getClass().getResource("/gui/customer/OrderHistory.css").toExternalForm());
-	        primaryStage.setTitle("Bistro - Order History");
-	        primaryStage.setScene(scene);
-	        primaryStage.show();
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	    }
+		System.out.println("Selected: Order History");
+		try {
+			if (ChatClient.user != null) {
+				BistroMessage msg = new BistroMessage(ActionType.GET_USER_HISTORY, ChatClient.user.getUserId());
+																																																			// שלך
+				ClientUI.chat.accept(msg);
+			}
+
+			((Node) event.getSource()).getScene().getWindow().hide();
+			Stage primaryStage = new Stage();
+			Parent root = FXMLLoader.load(getClass().getResource("/gui/customer/OrderHistory.fxml"));
+			Scene scene = new Scene(root);
+			scene.getStylesheets().add(getClass().getResource("/gui/customer/OrderHistory.css").toExternalForm());
+			primaryStage.setTitle("Bistro - Order History");
+			primaryStage.setScene(scene);
+			primaryStage.show();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Error loading Order History");
+		}
 	}
-	
+
 	@FXML
 	public void clickEditProfile(ActionEvent event) {
 		try {
-            //Load the FXML file
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/gui/customer/EditDetails.fxml"));
-            Parent root = loader.load();
+			// Load the FXML file
+			FXMLLoader loader = new FXMLLoader(getClass().getResource("/gui/customer/EditDetails.fxml"));
+			Parent root = loader.load();
 
-            // Create the Stage (Window)
-            Stage stage = new Stage();
-            stage.setTitle("Update Personal Details");
-            stage.setScene(new Scene(root));
-            
-            //Show the window
-            stage.show(); 
-            
-        } catch (Exception e) {
-            System.out.println("Error loading EditProfile screen");
-            e.printStackTrace();
-        }
+			// Create the Stage (Window)
+			Stage stage = new Stage();
+			stage.setTitle("Update Personal Details");
+			stage.setScene(new Scene(root));
+
+			// Show the window
+			stage.show();
+
+		} catch (Exception e) {
+			System.out.println("Error loading EditProfile screen");
+			e.printStackTrace();
+		}
 	}
-	
+
 	/**
 	 * Opens the Digital Member Card in a new modal window.
 	 *
@@ -311,28 +308,12 @@ public class UserMenuController implements Initializable {
 	}
 
 	/**
-	 * Handles the "Exit" action.
-	 * <p>
-	 * Attempts to send a {@link ActionType#CLIENT_QUIT} message to the server to
-	 * gracefully close the connection, then terminates the client application.
-	 * </p>
-	 *
-	 * @param event The ActionEvent triggered by clicking the button.
+	 * Triggered by the "Logout" button in FXML. Uses the REUSED logic from
+	 * AbstractBistroController.
 	 */
 	@FXML
-	public void getExitBtn(ActionEvent event) {
-		System.out.println("Exit requested");
-		try {
-			// Attempt to gracefully disconnect from the server
-			if (ClientUI.chat != null && ClientUI.chat.client != null && ClientUI.chat.client.isConnected()) {
-				BistroMessage msg = new BistroMessage(ActionType.CLIENT_QUIT, null);
-				ClientUI.chat.client.sendToServer(msg);
-			}
-		} catch (Exception e) {
-		} finally {
-			System.out.println("Closing application now.");
-			System.exit(0);
-		}
+	public void clickLogout(ActionEvent event) {
+		// call to the function in the AbstractBistroController class
+		super.logout(event);
 	}
-
 }

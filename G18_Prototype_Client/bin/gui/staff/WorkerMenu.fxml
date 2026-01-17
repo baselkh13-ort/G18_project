@@ -33,17 +33,36 @@
 		<Button fx:id="btnViewAll" mnemonicParsing="false"
 			onAction="#clickViewAll" prefHeight="50.0" prefWidth="200.0"
 			styleClass="menu-button" text="View All Orders" />
+		<Button fx:id="btnWaitingList" mnemonicParsing="false"
+			onAction="#openWaitingList" prefHeight="50.0" prefWidth="200.0"
+			styleClass="menu-button" text="View Waiting List" />
+		<Button fx:id="btnEditHours" mnemonicParsing="false"
+			onAction="#openEditOpeningHours" prefHeight="50.0" prefWidth="200.0"
+			styleClass="menu-button" text="Manage Opening Hours" />
+		<Button fx:id="btnMemberManagment" mnemonicParsing="false"
+			onAction="#openMembersManagement" prefHeight="50.0" prefWidth="200.0"
+			styleClass="menu-button" text="View Members List" />
+		<Button fx:id="btnActiveOrders" mnemonicParsing="false"
+			onAction="#openActiveOrders" prefHeight="50.0" prefWidth="200.0"
+			styleClass="menu-button" text="View Active Orders" />
+		<Button fx:id="btnActiveDiners" mnemonicParsing="false"
+			onAction="#openActiveDiners" prefHeight="50.0" prefWidth="200.0"
+			styleClass="menu-button" text="View Current Diners" />
+		<Button fx:id="btnManageTables" mnemonicParsing="false"
+			onAction="#openManageTables" prefHeight="50.0" prefWidth="200.0"
+			styleClass="menu-button" text="Manage Tables" />
 
 	</VBox>
 
 	<VBox alignment="CENTER" spacing="15">
-		<Button fx:id="btnViewReports" text="View Monthly Reports"
-			styleClass="menu-button, manager-button" />
+		<Button fx:id="btnViewReports" mnemonicParsing="false"
+			onAction="#openReportsScreen" prefHeight="50.0" prefWidth="200.0"
+			styleClass="menu-button, manager-button" text="View Monthly Reports"/>
 
 	</VBox>
-		<Button fx:id="btnExit" mnemonicParsing="false"
-			onAction="#getExitBtn" prefHeight="50.0" prefWidth="200.0"
-			styleClass="exit-button" text="Exit" />
+	<Button fx:id="btnExit" mnemonicParsing="false"
+		onAction="#clickLogout" prefHeight="50.0" prefWidth="200.0"
+		styleClass="exit-button" text="logOut" />
 	<Separator maxWidth="300" />
 
 </VBox>

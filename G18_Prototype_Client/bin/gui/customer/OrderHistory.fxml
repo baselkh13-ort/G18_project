@@ -7,30 +7,40 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="500.0" prefWidth="700.0" 
-            xmlns="http://javafx.com/javafx/8" 
-            xmlns:fx="http://javafx.com/fxml/1" 
-            fx:controller="gui.customer.OrderHistoryController"
-            styleClass="root">
+<AnchorPane prefHeight="500.0" prefWidth="700.0"
+	xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+	fx:controller="gui.customer.OrderHistoryController" styleClass="root">
 
-   <children>
-      <VBox alignment="TOP_CENTER" layoutX="20.0" layoutY="20.0" prefHeight="460.0" prefWidth="660.0" spacing="15.0">
-         
-         <Label fx:id="lblTitle" styleClass="title-label" text="Order &amp; Visit History" />
-         
-         <TableView fx:id="tblHistory" prefHeight="350.0" prefWidth="660.0">
-           <columns>
-             <TableColumn fx:id="colOrderNumber" text="Order #" prefWidth="70.0" />
-             <TableColumn fx:id="colDate" text="Date" prefWidth="90.0" />
-             <TableColumn fx:id="colTime" text="Time" prefWidth="70.0" />
-             <TableColumn fx:id="colGuests" text="Diners" prefWidth="60.0" />
-             <TableColumn fx:id="colStatus" text="Status" prefWidth="100.0" />
-             <TableColumn fx:id="colPrice" text="Total Price" prefWidth="90.0" />
-           </columns>
-         </TableView>
-         
-         <Button fx:id="btnBack" onAction="#clickBack" styleClass="back-button" text="Back to Menu" />
-         
-      </VBox>
-   </children>
+	<children>
+		<VBox alignment="TOP_CENTER" layoutX="20.0" layoutY="20.0"
+			prefHeight="460.0" prefWidth="500.0" spacing="15.0">
+
+			<Label fx:id="lblTitle" styleClass="title-label"
+				text="Order &amp; Visit History" />
+
+			<TableView fx:id="tblHistory" prefHeight="350.0"
+				prefWidth="500.0">
+				<columns>
+					<TableColumn fx:id="colOrderNumber" text="Order"
+						prefWidth="60.0" />
+					<TableColumn fx:id="colDate" text="Date"
+						prefWidth="130.0" />
+					<TableColumn fx:id="colGuests" text="Diners"
+						prefWidth="60.0" />
+					<TableColumn fx:id="colStatus" text="Status"
+						prefWidth="90.0" />
+
+					<TableColumn fx:id="colIsVisit" text="Visited?"
+						prefWidth="80.0" />
+
+					<TableColumn fx:id="colPrice" text="Total Price"
+						prefWidth="90.0" />
+				</columns>
+			</TableView>
+
+			<Button fx:id="btnBack" onAction="#clickBack"
+				styleClass="back-button" text="Back to Menu" />
+
+		</VBox>
+	</children>
 </AnchorPane>

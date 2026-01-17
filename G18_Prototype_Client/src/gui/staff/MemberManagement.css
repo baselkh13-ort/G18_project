@@ -1,0 +1,67 @@
+/* General Background */
+.root-pane {
+    -fx-background-color: #f4f4f4;
+}
+
+/* Header Styling */
+.header-label {
+    -fx-text-fill: #2c3e50;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);
+}
+
+/* Table View Styling */
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #ecf0f1;
+    -fx-border-color: transparent transparent #bdc3c7 transparent;
+    -fx-border-width: 1px;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #2c3e50;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER-LEFT;
+}
+
+/* Selected Row Highlight */
+.table-row-cell:selected {
+    -fx-background-color: #3498db; 
+    -fx-text-fill: white;
+}
+
+/* Main Action Button (Green) */
+.action-button {
+    -fx-background-color: #27ae60;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+}
+
+.action-button:hover {
+    -fx-background-color: #2ecc71;
+}
+
+.action-button:pressed {
+    -fx-background-color: #1e8449;
+}
+
+/* Back Button (Gray) */
+.back-button {
+    -fx-background-color: #95a5a6;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+}
+
+.back-button:hover {
+    -fx-background-color: #7f8c8d;
+}

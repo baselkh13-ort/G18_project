@@ -49,7 +49,7 @@
 
     <HBox spacing="20.0" alignment="CENTER">
         <Button fx:id="btnSave" text="Save Changes" onAction="#clickSave" styleClass="button-save"/>
-        <Button fx:id="btnBack" text="Cancel" onAction="#clickBack" styleClass="button-back"/>
+        <Button fx:id="btnBack" text="Back" onAction="#clickBack" styleClass="button-back"/>
     </HBox>
 
 </VBox>

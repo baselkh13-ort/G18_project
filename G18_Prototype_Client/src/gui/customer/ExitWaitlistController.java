@@ -7,8 +7,6 @@ import client.ChatClient;
 import client.ClientUI;
 import common.ActionType;
 import common.BistroMessage;
-import common.Role;
-import common.User;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -23,116 +21,123 @@ import javafx.stage.Stage;
 
 /**
  * Controller for the "Exit Waiting List" screen.
- * <p>
- * Handles the logic for removing a customer from the waiting list.
- * Since the Waiting List is part of the 'orders' table in the DB with status='WAITING',
- * this controller sends the user's identification to the server to find and cancel that specific order.
- * </p>
+ * This class handles the logic for removing a customer from the waiting list.
+ * It captures the unique confirmation code from the user, validates that it is a number,
+ * sends a cancellation request to the server, and provides feedback based on the response.
  */
 public class ExitWaitlistController implements Initializable {
 
-	// UI Components
-	@FXML
-	private Label lblTitle;
-	@FXML
-	private Label lblInstruction;
-	/** Input field for Guest identification (Phone or Email). */
-	@FXML
-	private TextField txtIdentification;
+    //FXML Components
 
-	/** Box for the input field (used to hide it form the members). */
-	@FXML
-	private VBox vboxGuest;
+    @FXML
+    private Label lblTitle;
 
-	@FXML
-	private Label lblError;
-	@FXML
-	private Button btnExitWaitlist;
-	@FXML
-	private Button btnBack;
+    @FXML
+    private Label lblInstruction;
 
-	/**
-	 * Initializes the controller class.
-	 * <p>
-	 * This method is called automatically after the FXML file has been loaded. It
-	 * adapts the UI visibility and instruction text based on whether the current
-	 * user is a registered Member or a Guest.
-	 * </p>
-	 *
-	 * @param location  The location used to resolve relative paths for the root
-	 *                  object.
-	 * @param resources The resources used to localize the root object.
-	 */
-	@Override
-	public void initialize(URL location, ResourceBundle resources) {
-		lblTitle.setText("Exit Waiting List");
-		btnExitWaitlist.setText("Confirm Exit");
-		lblError.setText("");
-		
-		User user = ChatClient.user;
+    /** Input field for the Confirmation Code. */
+    @FXML
+    private TextField txtIdentification;
 
-		// Check if the user is a Member
-		if (user != null && user.getRole() == Role.MEMBER) {
-			// Member View - hide the input field since from the member
-			vboxGuest.setVisible(false);
-			vboxGuest.setManaged(false);
-			lblInstruction.setText("Click confirm to remove yourself from the list.");
-		} else {
-			// Guest View - show the input field for manual identification.
-			vboxGuest.setVisible(true);
-			vboxGuest.setManaged(true);
+    /** Container for the input field. */
+    @FXML
+    private VBox vboxGuest;
 
-			lblInstruction.setText("Enter the Phone or Email you used to join the list:");
-		}
-	}
+    @FXML
+    private Label lblError;
 
-	/**
-     * Handles the exit request.
-     * <p>
-     * Sends a request to the Server to find an order with status 'WAITING' 
-     * matching the provided ID, and change it to 'CANCELED' (or delete it).
-     * </p>
+    @FXML
+    private Button btnExitWaitlist;
+
+    @FXML
+    private Button btnBack;
+
+    /**
+     * Initializes the controller class.
+     * This method is called automatically after the FXML file has been loaded. 
+     * It sets up the UI text and ensures the input field is visible for all users,
+     * as the server requires a specific confirmation code (Integer) to identify the order.
+     *
+     * @param location  The location used to resolve relative paths for the root object.
+     * @param resources The resources used to localize the root object.
+     */
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        lblTitle.setText("Exit Waiting List");
+        btnExitWaitlist.setText("Confirm Exit");
+        lblError.setText("");
+
+        // Make the input field visible to all users (Members and Guests)
+        // because the server requires the specific Confirmation Code to identify the order.
+        vboxGuest.setVisible(true);
+        vboxGuest.setManaged(true);
+        
+        // Set clear instructions for the user
+        lblInstruction.setText("Please enter your Confirmation Code to exit:");
+    }
+
+    /**
+     * Handles the "Confirm Exit" button click event.
+     * This method retrieves the input string, parses it into an Integer, 
+     * sends a {@link ActionType#LEAVE_WAITLIST} request with the Integer code to the server.
+     * It includes error handling for non-numeric inputs.
+     *
+     * @param event The event triggered by clicking the confirm button.
      */
     @FXML
     public void clickExitList(ActionEvent event) {
+        // Reset error message
         lblError.setText("");
-        User user = ChatClient.user; // Access the static user instance
-        Object identificationData = null;
-
-        // Determine the identification data to send
-        if (user != null && user.getRole() == Role.MEMBER) {
-        	// Member: memberCode
-            identificationData = user.getMemberCode();
-        } else {
-            // Guest: input (String)
-            String input = txtIdentification.getText().trim();
-            
-            if (input.isEmpty()) {
-                lblError.setText("Please enter your Phone or Email.");
-                return;
-            }
-            identificationData = input; 
+        
+        // Step 1: Get the input string
+        String inputStr = txtIdentification.getText().trim();
+        
+        if (inputStr.isEmpty()) {
+            lblError.setText("Please enter the Confirmation Code.");
+            return;
         }
+
+        // Step 2: Parse the string to an Integer
+        Integer codeToSend = null;
         try {
-            //Send request to server
-            BistroMessage msg = new BistroMessage(ActionType.LEAVE_WAITLIST, identificationData);
+            codeToSend = Integer.parseInt(inputStr);
+        } catch (NumberFormatException e) {
+            // Handle the case where the user entered non-numeric text
+            lblError.setText("Confirmation Code must be a number.");
+            return;
+        }
+
+        try {
+            // Reset client flags before sending the request
+            ChatClient.operationSuccess = false; 
+            ChatClient.returnMessage = ""; 
+
+            // Step 3: Send the request with the INTEGER object
+            BistroMessage msg = new BistroMessage(ActionType.LEAVE_WAITLIST, codeToSend);
             ClientUI.chat.accept(msg);
 
-            // Check server response (using the boolean flag in ChatClient)
+            // Step 4: Handle the server's response
             if (ChatClient.operationSuccess) {
+                // Case: Server processed the request successfully
                 showSuccessAlert();
-                clickBack(event); // Return to main menu on success
+                clickBack(event); // Return to the previous menu
             } else {
-                lblError.setText("Failed. Details not found in the waiting list.");
+                // Case: Server returned an error (Code not found)
+                if (ChatClient.returnMessage != null && !ChatClient.returnMessage.isEmpty()) {
+                    lblError.setText(ChatClient.returnMessage); 
+                } else {
+                    lblError.setText("Failed to remove from waitlist.");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
             lblError.setText("System error. Please try again.");
         }
-    }  
+    }   
     
     /**
-     * Displays a success information alert to the customer.
+     * Displays an information alert indicating success.
+     * This is called when the server successfully removes the user from the waiting list.
      */
     private void showSuccessAlert() {
         Alert alert = new Alert(AlertType.INFORMATION);
@@ -157,5 +162,4 @@ public class ExitWaitlistController implements Initializable {
             e.printStackTrace();
         }
     }
-           
 }

@@ -21,18 +21,14 @@ import javafx.stage.Stage;
 
 /**
  * Controller for the "Edit Profile Details" screen.
- * <p>
- * This controller allows <b>Member</b> users to view their personal details and update
+ *
+ * This controller allows Member users to view their personal details and update
  * specific contact information (Email and Phone Number).
- * </p>
- * <p>
- * <b>Business Rules:</b>
- * <ul>
- * <li><b>Read-Only Fields:</b> First Name, Last Name, Member ID (cannot be changed by the user).</li>
- * <li><b>Editable Fields:</b> Email, Phone Number.</li>
- * <li><b>Validation:</b> Fields cannot be left empty.</li>
- * </ul>
- * </p>
+ *
+ * Business Rules:
+ * - Read-Only Fields: First Name, Last Name, Member ID (cannot be changed by the user).
+ * - Editable Fields: Email, Phone Number.
+ * - Validation: Fields cannot be left empty.
  */
 public class EditDetailsController implements Initializable {
 
@@ -95,10 +91,8 @@ public class EditDetailsController implements Initializable {
 
     /**
      * Handles the "Save Changes" button click.
-     * <p>
      * Validates input, updates the User object, and sends a request to the server
      * to persist changes in the database.
-     * </p>
      *
      * @param event The ActionEvent triggered by the button.
      */
@@ -114,7 +108,17 @@ public class EditDetailsController implements Initializable {
             showAlert("Validation Error", "Phone number and Email cannot be empty.");
             return;
         }
+        // Validate Phone
+        if (newPhone.length() != 10 || !newPhone.startsWith("05") || !newPhone.matches("\\d+")) {
+            lblMessage.setText("Invalid Phone: Must be 10 digits and start with '05'.");
+            return;
+        }
 
+        // Validate Email
+        if (!newEmail.contains("@") || !newEmail.contains(".")) {
+            lblMessage.setText("Invalid Email format.");
+            return;
+        }
      // 2. Prepare Data for Update
         // We create a copy or update the existing user object to send to the server.
         // NOTE: Ensure your User class has a constructor or setters for this.
@@ -158,7 +162,6 @@ public class EditDetailsController implements Initializable {
     public void clickBack(ActionEvent event) {
         try {
             ((Node) event.getSource()).getScene().getWindow().hide();
-            // Optional: Re-open the main menu if needed
         } catch (Exception e) {
             e.printStackTrace();
         }

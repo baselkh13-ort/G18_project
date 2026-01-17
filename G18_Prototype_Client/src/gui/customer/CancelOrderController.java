@@ -24,18 +24,13 @@ import javafx.stage.Stage;
 
 /**
  * Controller for the Order Cancellation Screen.
- * <p>
  * This controller handles the cancellation process for existing orders. It
  * supports two modes of operation based on the user's login status:
- * <ul>
- * <li><b>Registered Members:</b> Automatically identified. Must only provide
+ * Registered Members:Automatically identified. Must only provide
  * the Order Confirmation Code. Security validation ensures the order belongs to
- * the logged-in member.</li>
- * <li><b>Guests:</b> Must provide the Order Confirmation Code AND the
- * identification detail (Phone Number or Email) used during booking to verify
- * ownership.</li>
- * </ul>
- * </p>
+ * the logged-in member.
+ * Guests: Must provide the Order Confirmation Code AND the
+ * identification detail (Phone Number or Email) used during booking to verify ownership.
  */
 public class CancelOrderController implements Initializable {
 
@@ -60,12 +55,10 @@ public class CancelOrderController implements Initializable {
 
 	/**
 	 * Initializes the controller class.
-	 * <p>
 	 * Sets up the UI components based on the currently logged-in user. If a Member
 	 * is logged in, the additional identification field is hidden because the
 	 * system already knows their identity. If a Guest is using the system, the
 	 * identification field is shown to allow verification.
-	 * </p>
 	 *
 	 * @param location  The location used to resolve relative paths for the root
 	 *                  object.
@@ -94,12 +87,10 @@ public class CancelOrderController implements Initializable {
 
 	/**
 	 * Handles the "Cancel Order" button click event.
-	 * <p>
 	 * The process flow is as follows: 1. Validates that input fields are not empty.
 	 * 2. Sends a request to the server to fetch the order details by Confirmation
 	 * Code. 3. Performs a security check (Authorization) to ensure the user owns
 	 * the order. 4. If authorized, sends a cancellation request to the server.
-	 * </p>
 	 *
 	 * @param event The event triggered by clicking the button.
 	 */
@@ -124,7 +115,7 @@ public class CancelOrderController implements Initializable {
 		try {
 			int confirmationCode = Integer.parseInt(codeInput);
 
-			// 2. Fetch Order Details from Server
+			//Fetch Order Details from Server
 			BistroMessage fetchMsg = new BistroMessage(ActionType.GET_ORDER_BY_CODE, confirmationCode);
 			ClientUI.chat.accept(fetchMsg);
 
@@ -158,15 +149,12 @@ public class CancelOrderController implements Initializable {
 
 	/**
 	 * Verifies if the current user is authorized to cancel the specific order.
-	 * <p>
-	 * <b>Logic:</b>
-	 * <ul>
-	 * <li>If User is a <b>Member</b>: The Order's memberID must match the User's
-	 * ID.</li>
-	 * <li>If User is a <b>Guest</b>: The provided input (Phone or Email) must match
-	 * the contact details stored in the order.</li>
-	 * </ul>
-	 * </p>
+	 * Logic:
+	 * If User is a Member: The Order's memberID must match the User's
+	 * ID.
+	 * If User is a Guest: The provided input (Phone or Email) must match
+	 * the contact details stored in the order.
+
 	 *
 	 * @param order          The order object fetched from the server.
 	 * @param identification The phone number or email entered by the user (can be
