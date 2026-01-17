@@ -7,7 +7,7 @@ public enum ActionType {
 	IDENTIFY_BY_QR,
 	GET_USER_HISTORY, //Getting the user history from DB
 	UPDATE_USER_INFO, // Update the contact info
-   
+	GET_WAITING_LIST,
 	GET_ORDER_BY_CODE,
     CANCEL_ORDER,
 	GET_AVAILABLE_TIMES,
@@ -15,6 +15,7 @@ public enum ActionType {
     CREATE_ORDER,
     ORDER_ALTERNATIVES,
     SERVER_NOTIFICATION,
+    
     
     ENTER_WAITLIST,
     LEAVE_WAITLIST,
@@ -26,15 +27,20 @@ public enum ActionType {
     PAY_BILL,
     
     GET_ALL_ORDERS,
-    
+    GET_ALL_TABLES,
+    GET_RELEVANT_ORDERS,
     ADD_TABLE,
     REMOVE_TABLE,           
     UPDATE_TABLE,
     
     GET_OPENING_HOURS,      
     UPDATE_OPENING_HOURS,   
-
+    
+    GET_ACTIVE_DINERS,
+    
+    GET_ALL_ACTIVE_ORDERS,
     GET_PERFORMANCE_REPORT,  
     GET_SUBSCRIPTION_REPORT, 
+    LOGOUT,
     CLIENT_QUIT
 }

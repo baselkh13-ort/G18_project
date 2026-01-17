@@ -31,6 +31,8 @@ public class Order implements Serializable {
     //Schedule & Timing
     private Timestamp orderDate;   /** The scheduled date and time for the visit. */ 
     private Timestamp dateOfPlacingOrder; /** The timestamp when this order was actually created/placed in the system. */
+    private Timestamp actualArrivalTime;
+    private Timestamp actualLeaveTime;
     
     // Order Details 
     private int numberOfGuests;
@@ -186,6 +188,21 @@ Full Constructor - Used primarily by the Server when retrieving existing data fr
 
     public void setEmail(String email) { 
         this.email = email; 
+    }
+    public Timestamp getActualArrivalTime() {
+        return actualArrivalTime;
+    }
+
+    public void setActualArrivalTime(Timestamp actualArrivalTime) {
+        this.actualArrivalTime = actualArrivalTime;
+    }
+
+    public Timestamp getActualLeaveTime() {
+        return actualLeaveTime;
+    }
+
+    public void setActualLeaveTime(Timestamp actualLeaveTime) {
+        this.actualLeaveTime = actualLeaveTime;
     }
     
 
