@@ -21,18 +21,14 @@ import javafx.stage.Stage;
 
 /**
  * Controller for the "Edit Profile Details" screen.
- * <p>
- * This controller allows <b>Member</b> users to view their personal details and update
+ *
+ * This controller allows Member users to view their personal details and update
  * specific contact information (Email and Phone Number).
- * </p>
- * <p>
- * <b>Business Rules:</b>
- * <ul>
- * <li><b>Read-Only Fields:</b> First Name, Last Name, Member ID (cannot be changed by the user).</li>
- * <li><b>Editable Fields:</b> Email, Phone Number.</li>
- * <li><b>Validation:</b> Fields cannot be left empty.</li>
- * </ul>
- * </p>
+ *
+ * Business Rules:
+ * - Read-Only Fields: First Name, Last Name, Member ID (cannot be changed by the user).
+ * - Editable Fields: Email, Phone Number.
+ * - Validation: Fields cannot be left empty.
  */
 public class EditDetailsController implements Initializable {
 
@@ -95,10 +91,8 @@ public class EditDetailsController implements Initializable {
 
     /**
      * Handles the "Save Changes" button click.
-     * <p>
      * Validates input, updates the User object, and sends a request to the server
      * to persist changes in the database.
-     * </p>
      *
      * @param event The ActionEvent triggered by the button.
      */

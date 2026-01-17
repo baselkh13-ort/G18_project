@@ -10,16 +10,13 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
 
 /**
  * Controller for the "Leave Waiting List" screen.
- * <p>
  * This screen allows any customer to remove their entry from the waiting list
  * by providing the unique Confirmation Code generated during registration.
- * </p>
  */
-public class TerminalLeaveWaitlistController {
+public class TerminalLeaveWaitlistController extends AbstractTerminalController {
 
     @FXML private VBox vboxIdentification;
 
@@ -46,12 +43,10 @@ public class TerminalLeaveWaitlistController {
 
     /**
      * Processes the request to leave the waiting list.
-     * <p>
      * Logic:
      * 1. Validates that the input is not empty and contains only digits.
      * 2. Sends the numeric code to the server via ActionType.LEAVE_WAITLIST.
      * 3. Displays success or error based on server response.
-     * </p>
      * @param event The triggered ActionEvent.
      */
     @FXML
@@ -60,15 +55,16 @@ public class TerminalLeaveWaitlistController {
 
         // 1. Check for empty input
         if (codeInput.isEmpty()) {
-            setStatus("Error: Confirmation code is required.", false);
+            setStatus(lblStatus, "Error: Confirmation code is required.", false);
             return;
         }
+        
         Integer codeToSend = null;
         // 2. Validate numeric format (Confirmation codes are integers)
         try {
-        	codeToSend =Integer.parseInt(codeInput);
+        	codeToSend = Integer.parseInt(codeInput);
         } catch (NumberFormatException e) {
-            setStatus("Error: Code must consist of numbers only.", false);
+            setStatus(lblStatus, "Error: Code must consist of numbers only.", false);
             return;
         }
 
@@ -77,9 +73,10 @@ public class TerminalLeaveWaitlistController {
         // 3. Communicate with server
         ClientUI.chat.accept(new BistroMessage(ActionType.LEAVE_WAITLIST, codeToSend));
         System.out.println(ChatClient.operationSuccess);
+        
         // 4. Handle Response
         if (ChatClient.operationSuccess) {
-            setStatus("Success: You have been removed from the waiting list.", true);
+            setStatus(lblStatus, "Success: You have been removed from the waiting list.", true);
             
             // Lock inputs to prevent double submission
             btnConfirm.setDisable(true);
@@ -88,30 +85,7 @@ public class TerminalLeaveWaitlistController {
         } else {
             // Display server-side error or generic message
             String errorMsg = (ChatClient.returnMessage != null) ? ChatClient.returnMessage : "Error: Invalid or expired code.";
-            setStatus(errorMsg, false);
+            setStatus(lblStatus, errorMsg, false);
         }
-    }
-
-    /**
-     * Updates the status label style and content.
-     * @param msg The message string.
-     * @param isSuccess True for success (green), False for error (red).
-     */
-    private void setStatus(String msg, boolean isSuccess) {
-        lblStatus.setText(msg);
-        if (isSuccess) {
-            lblStatus.setStyle("-fx-text-fill: #2ecc71;"); // Green
-        } else {
-            lblStatus.setStyle("-fx-text-fill: #e74c3c;"); // Red
-        }
-    }
-
-    /**
-     * Closes the window.
-     * @param event The triggered ActionEvent.
-     */
-    @FXML
-    void closeWindow(ActionEvent event) {
-        ((Stage) btnClose.getScene().getWindow()).close();
     }
 }

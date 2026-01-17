@@ -25,11 +25,9 @@ import javafx.stage.Stage;
 
 /**
  * Controller for editing the restaurant's opening hours.
- * <p>
  * Handles two types of updates:
  * 1. Recurring weekly hours (e.g., Every Sunday).
  * 2. Specific date exceptions (e.g., Holidays).
- * </p>
  */
 public class EditOpeningHoursController implements Initializable {
 

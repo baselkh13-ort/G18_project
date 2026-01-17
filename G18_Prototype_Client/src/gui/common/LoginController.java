@@ -21,18 +21,15 @@ import javafx.stage.Stage;
 
 /**
  * Controller class for the Login Screen.
- * <p>
  * This class handles the initial user authentication process. It serves as the
  * entry point for the client application GUI.
- * </p>
  * * Key responsibilities:
- * <ul>
- * <li>Validating user input (username and password).</li>
- * <li>Communicating with the server to authenticate credentials.</li>
- * <li>Navigating to the appropriate main menu based on the user's role (Member,
- * Worker, Manager).</li>
- * <li>Providing a "Guest" login option for limited access.</li>
- * </ul>
+
+ * Validating user input (username and password).
+ * Communicating with the server to authenticate credentials.
+ * Navigating to the appropriate main menu based on the user's role (Member,
+ * Worker, Manager).
+ * Providing a "Guest" login option for limited access.
  */
 public class LoginController {
 
@@ -55,10 +52,8 @@ public class LoginController {
 
 	/**
 	 * Launches and displays the Login Screen.
-	 * <p>
 	 * This method loads the FXML file, sets the scene, and displays the primary
 	 * stage. It should be called from the main application class (ClientUI).
-	 * </p>
 	 *
 	 * @param primaryStage The main stage (window) of the JavaFX application.
 	 * @throws Exception If the FXML file '/gui/common/Login.fxml' cannot be loaded.
@@ -75,12 +70,10 @@ public class LoginController {
 
 	/**
 	 * Handles the "Login" button click event.
-	 * <p>
 	 * The process involves: 1. Validating that input fields are not empty. 2.
 	 * Creating a temporary User object. 3. Sending a login request to the server
 	 * via ChatClient. 4. Waiting for the server's response (blocking wait). 5.
 	 * Navigating to the main menu if successful, or displaying an error.
-	 * </p>
 	 *
 	 * @param event The ActionEvent triggered by the button click.
 	 */
@@ -127,10 +120,8 @@ public class LoginController {
 
 	/**
 	 * Handles the "Continue as Guest" button click event.
-	 * <p>
 	 * Bypasses authentication and opens the User Menu in Guest mode. The
 	 * ChatClient.user field will remain null.
-	 * </p>
 	 *
 	 * @param event The ActionEvent triggered by the button click.
 	 */
@@ -155,13 +146,9 @@ public class LoginController {
 
 	/**
 	 * Handles the "Exit" action.
-	 * <p>
-	 * <ol>
-	 * <li>Sends a {@link ActionType#CLIENT_QUIT} message to update server logic.</li>
-	 * <li>Calls {@code client.quit()} to physically disconnect the socket connection.</li>
-	 * <li>Terminates the application using {@code System.exit(0)}.</li>
-	 * </ol>
-	 * </p>
+	 *Sends a {@link ActionType#CLIENT_QUIT} message to update server logic.
+	 *Calls {@code client.quit()} to physically disconnect the socket connection.
+	 *Terminates the application using {@code System.exit(0)}.
 	 *
 	 * @param event The ActionEvent triggered by clicking the button.
 	 */

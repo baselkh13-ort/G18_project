@@ -7,27 +7,42 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="450.0" prefWidth="500.0" styleClass="root" stylesheets="@Terminal.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="gui.terminal.TerminalCancelController">
-   <children>
-      <Label layoutX="130.0" layoutY="30.0" styleClass="header-label" text="Cancel Order" />
-      
-      <VBox layoutX="75.0" layoutY="100.0" spacing="20.0" prefWidth="350.0">
-         
-         <VBox spacing="5.0">
-            <Label text="Order Confirmation Code:" textFill="WHITE" style="-fx-font-weight: bold;"/>
-            <TextField fx:id="txtOrderCode" promptText="e.g. 5050" prefHeight="40.0" />
-         </VBox>
-         
-         <VBox fx:id="vboxIdentification" spacing="5.0">
-            <Label text="Phone Number (for verification):" textFill="WHITE" style="-fx-font-weight: bold;"/>
-            <TextField fx:id="txtPhoneNumber" promptText="05X-XXXXXXX" prefHeight="40.0" />
-         </VBox>
+<AnchorPane prefHeight="450.0" prefWidth="500.0"
+	styleClass="root" stylesheets="@Terminal.css"
+	xmlns="http://javafx.com/javafx/8.0.171"
+	xmlns:fx="http://javafx.com/fxml/1"
+	fx:controller="gui.terminal.TerminalCancelController">
+	<children>
+		<Label layoutX="130.0" layoutY="30.0" styleClass="header-label"
+			text="Cancel Order" />
 
-         <Label fx:id="lblStatus" textFill="#f1c40f" wrapText="true" prefHeight="40.0"/>
+		<VBox layoutX="75.0" layoutY="100.0" spacing="20.0"
+			prefWidth="350.0">
 
-         <Button mnemonicParsing="false" onAction="#submitCancellation" prefHeight="50.0" prefWidth="350.0" styleClass="terminal-button" text="Confirm Cancellation" />
-         
-         <Button fx:id="btnClose" mnemonicParsing="false" onAction="#closeWindow" styleClass="secondary-button" text="Close / Back" alignment="CENTER" maxWidth="Infinity"/>
-      </VBox>
-   </children>
+			<VBox spacing="5.0">
+				<Label text="Order Confirmation Code:" textFill="WHITE"
+					style="-fx-font-weight: bold;" />
+				<TextField fx:id="txtOrderCode" promptText="e.g. 5050"
+					prefHeight="40.0" />
+			</VBox>
+
+			<VBox fx:id="vboxIdentification" spacing="5.0">
+				<Label text="Phone Number or Email (for verification):"
+					textFill="WHITE" style="-fx-font-weight: bold;" />
+				<TextField fx:id="txtIdentification"
+					promptText="05X-XXXXXXX" prefHeight="40.0" />
+			</VBox>
+
+			<Label fx:id="lblStatus" textFill="#f1c40f" wrapText="true"
+				prefHeight="40.0" />
+
+			<Button mnemonicParsing="false" onAction="#submitCancellation"
+				prefHeight="50.0" prefWidth="350.0" styleClass="terminal-button"
+				text="Confirm Cancellation" />
+
+			<Button fx:id="btnClose" mnemonicParsing="false"
+				onAction="#closeWindow" styleClass="secondary-button"
+				text="Close / Back" alignment="CENTER" maxWidth="Infinity" />
+		</VBox>
+	</children>
 </AnchorPane>

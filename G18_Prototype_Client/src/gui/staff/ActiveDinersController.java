@@ -22,28 +22,39 @@ import javafx.stage.Stage;
 
 /**
  * Controller for viewing currently seated diners (Active Diners).
- * <p>
- * Displays a list of tables currently occupied.
- * Allows refreshing the data from the server.
- * </p>
+ * * This screen displays a list of tables that are currently occupied by customers.
+ * It allows restaurant staff to monitor real-time occupancy and refresh the data
+ * from the server to get the latest status.
  */
 public class ActiveDinersController implements Initializable {
 
     @FXML private TableView<Order> tblActiveDiners;
     @FXML private TableColumn<Order, Integer> colOrderNum;
     @FXML private TableColumn<Order, String> colName;
-    @FXML private TableColumn<Order, Timestamp> colTimeEntered; // זמן כניסה/הזמנה
+    @FXML private TableColumn<Order, Timestamp> colTimeEntered;
     @FXML private TableColumn<Order, Integer> colGuests;
     
     @FXML private Button btnRefresh;
     @FXML private Button btnClose;
 
+    /**
+     * Initializes the controller class.
+     * Called automatically after the FXML file has been loaded.
+     * Sets up the table columns and loads the initial data from the client memory.
+     * * @param location The location used to resolve relative paths for the root object.
+     * @param resources The resources used to localize the root object.
+     */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setupTable();
         loadData();
     }
 
+    /**
+     * Configures the TableView columns.
+     * Maps the table columns to the corresponding properties in the Order entity
+     * using PropertyValueFactory.
+     */
     private void setupTable() {
         colOrderNum.setCellValueFactory(new PropertyValueFactory<>("orderNumber"));
         colName.setCellValueFactory(new PropertyValueFactory<>("CustomerName")); 
@@ -51,6 +62,11 @@ public class ActiveDinersController implements Initializable {
         colGuests.setCellValueFactory(new PropertyValueFactory<>("numberOfGuests"));
     }
 
+    /**
+     * Populates the table with the list of active diners.
+     * Retrieves the data from the static ChatClient.activeDiners list and
+     * wraps it in an ObservableList for display.
+     */
     private void loadData() {
         if (ChatClient.activeDiners != null) {
             ObservableList<Order> data = FXCollections.observableArrayList(ChatClient.activeDiners);
@@ -58,6 +74,12 @@ public class ActiveDinersController implements Initializable {
         }
     }
 
+    /**
+     * Handles the "Refresh" button click.
+     * Clears the local list of active diners and sends a request to the server
+     * to fetch the most up-to-date data.
+     * * @param event The ActionEvent triggered by clicking the refresh button.
+     */
     @FXML
     void refreshData(ActionEvent event) {
         // Clear old data
@@ -71,6 +93,11 @@ public class ActiveDinersController implements Initializable {
         loadData();
     }
 
+    /**
+     * Handles the "Close" button click.
+     * Closes the current window and returns to the previous screen.
+     * * @param event The ActionEvent triggered by clicking the close button.
+     */
     @FXML
     void closeWindow(ActionEvent event) {
         ((Stage) btnClose.getScene().getWindow()).close();

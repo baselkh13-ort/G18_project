@@ -94,12 +94,10 @@ public class ShowWaitingListController implements Initializable {
 	
 	/**
      * Loads the waiting list data from the client's local memory into the table view.
-     * <p>
      * This method assumes that the data was previously fetched from the server
      * and stored in the static {@link ChatClient#waitingList}.
      * It clears the current table items and re-populates them to ensure the view
      * is up-to-date.
-     * </p>
      */
 	private void loadData() {
 		waitingList.clear();
@@ -127,10 +125,8 @@ public class ShowWaitingListController implements Initializable {
 
 	/**
      * Handles the "Back" button action.
-     * <p>
      * Navigates the user back to the main Worker Menu by hiding the current
      * Waiting List screen and opening the {@link WorkerMenuController}.
-     * </p>
      *
      * @param event The event triggered by clicking the back button.
      */

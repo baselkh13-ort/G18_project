@@ -13,244 +13,211 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
-import javafx.util.StringConverter;
 
 /**
- * Controller for the Payment & Checkout screen (Terminal Version).
- * <p>
- * This controller adheres to the logic defined in the remote {@code PaymentController},
- * adapted for the physical Terminal interface.
- * </p>
- * <p>
- * <b>Business Rules:</b>
- * <ul>
- * <li><b>Identification:</b> Guests use Code, Members use List/Code.</li>
- * <li><b>Validation:</b> Payment allowed ONLY if status is 'SEATED'.</li>
- * <li><b>Discount:</b> Members receive 10%.</li>
- * <li><b>Action:</b> Uses {@code PAY_BILL} to close the order and free the table.</li>
- * </ul>
- * </p>
+ * Controller for the Payment and Checkout screen running on the Terminal. *
+ * This screen allows customers (both Members and Guests) to pay their bill
+ * directly from the terminal using their Order Confirmation Code. * Key
+ * Features: - Identification via Confirmation Code. - Validation that payment
+ * is only allowed for SEATED or BILLED orders. - Automatic 10% discount
+ * calculation for identified Members. - Simulation of the payment transaction
+ * and table release.
  */
-public class TerminalPaymentController implements Initializable {
+public class TerminalPaymentController extends AbstractTerminalController implements Initializable {
 
-    // --- Identification Section ---
-    @FXML private VBox vboxIdentification;
-    @FXML private TextField txtOrderCode;       // Input for Guests
-    @FXML private ComboBox<Order> cmbMyOrders;  // Selection for Members
-    @FXML private Button btnSearch;
+	@FXML
+	private VBox vboxIdentification;
+	@FXML
+	private TextField txtOrderCode;
+	@FXML
+	private Button btnSearch;
 
-    // --- Bill Details Section ---
-    @FXML private VBox vboxBillDetails;
-    @FXML private Label lblOrderInfo;
-    @FXML private Label lblTotalAmount;
-    @FXML private Label lblDiscount;
-    @FXML private Label lblFinalToPay;
-    @FXML private Button btnPayNow;
-    
-    @FXML private Label lblStatus;
-    
-    // Holds the currently selected order object
-    private Order currentOrderToPay = null;
+	@FXML
+	private VBox vboxBillDetails;
+	@FXML
+	private Label lblOrderInfo;
+	@FXML
+	private Label lblTotalAmount;
+	@FXML
+	private Label lblDiscount;
+	@FXML
+	private Label lblFinalToPay;
+	@FXML
+	private Button btnPayNow;
+	@FXML
+	private Label lblStatus;
 
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        // 1. Reset UI State
-        vboxBillDetails.setVisible(false);
-        vboxBillDetails.setManaged(false);
-        lblStatus.setText("");
+	private Order currentOrderToPay = null;
 
-        // 2. Member vs Guest Setup
-        if (ChatClient.terminalMember != null) {
-            setupMemberView();
-        } else {
-            setupGuestView();
-        }
-    }
+	/**
+	 * Initializes the controller class. Sets the initial UI state by hiding the
+	 * bill details section. If a member has identified via the main terminal
+	 * screen, a personalized greeting is displayed.
+	 */
+	@Override
+	public void initialize(URL location, ResourceBundle resources) {
+		// Reset UI to initial state
+		vboxBillDetails.setVisible(false);
+		vboxBillDetails.setManaged(false);
 
-    private void setupGuestView() {
-        txtOrderCode.setVisible(true);
-        cmbMyOrders.setVisible(false);
-        cmbMyOrders.setManaged(false);
-        lblStatus.setText("Guest: Enter Confirmation Code to pay.");
-    }
+		if (ChatClient.terminalMember != null) {
+			lblStatus.setText("Welcome " + ChatClient.terminalMember.getFirstName() + ". Enter code to pay:");
+		} else {
+			lblStatus.setText("Please enter your Confirmation Code to pay:");
+		}
+	}
 
-    private void setupMemberView() {
-        txtOrderCode.setVisible(false);
-        txtOrderCode.setManaged(false);
-        cmbMyOrders.setVisible(true);
-        lblStatus.setText("Hello " + ChatClient.terminalMember.getFirstName() + ", select an order to pay:");
-        
-        // ComboBox setup for displaying Orders
-        cmbMyOrders.setConverter(new StringConverter<Order>() {
-            @Override
-            public String toString(Order order) {
-                if (order == null) return null;
-                return "Order #" + order.getConfirmationCode() + " (Total: " + order.getTotalPrice() + " NIS)";
-            }
-            @Override
-            public Order fromString(String string) { return null; }
-        });
+	/**
+	 * Searches for the order by the code entered in the TextField. Performs basic
+	 * validation to ensure the input is numeric before triggering the server fetch.
+	 * * @param event The action event triggered by the Search button.
+	 */
+	@FXML
+	void searchOrder(ActionEvent event) {
+		lblStatus.setText("");
+		String codeStr = txtOrderCode.getText().trim();
 
-        // Load relevant orders
-        ClientUI.chat.accept(new BistroMessage(ActionType.GET_RELEVANT_ORDERS, ChatClient.terminalMember.getUserId()));
-        
-        if (ChatClient.relevantOrders != null && !ChatClient.relevantOrders.isEmpty()) {
-            cmbMyOrders.getItems().addAll(ChatClient.relevantOrders);
-        } else {
-            lblStatus.setText("No active orders found for today.");
-        }
-        
-        // Handle Selection
-        cmbMyOrders.setOnAction(e -> {
-            Order selected = cmbMyOrders.getValue();
-            if (selected != null) {
-                fetchBillDetails(selected.getConfirmationCode());
-            }
-        });
-    }
+		if (codeStr.isEmpty()) {
+			setStatus(lblStatus, "Please enter a confirmation code.", false);
+			return;
+		}
 
-    @FXML
-    void searchOrder(ActionEvent event) {
-        lblStatus.setText("");
-        String codeStr = txtOrderCode.getText().trim();
-        
-        if (codeStr.isEmpty()) {
-            lblStatus.setText("Please enter a confirmation code.");
-            lblStatus.setStyle("-fx-text-fill: #e74c3c;"); // Red
-            return;
-        }
-        
-        try {
-            fetchBillDetails(Integer.parseInt(codeStr));
-        } catch (NumberFormatException e) {
-            lblStatus.setText("Code must be numbers only.");
-            lblStatus.setStyle("-fx-text-fill: #e74c3c;");
-        }
-    }
+		try {
+			int code = Integer.parseInt(codeStr);
+			fetchBillDetails(code);
+		} catch (NumberFormatException e) {
+			setStatus(lblStatus, "Code must be numbers only.", false);
+		}
+	}
 
-    /**
-     * Sends request to server to get order details.
-     * <p>
-     * <b>Strict Logic Adherence:</b> Matches the status validation of {@code PaymentController}.
-     * </p>
-     */
-    private void fetchBillDetails(int confirmationCode) {
-        System.out.println("Terminal: Fetching bill for Code: " + confirmationCode);
-        
-        // 1. Send Request
-        ClientUI.chat.accept(new BistroMessage(ActionType.GET_ORDER_BY_CODE, confirmationCode));
-        
-        // 2. Check Existence
-        if (ChatClient.order == null) {
-            lblStatus.setText("Order not found.");
-            lblStatus.setStyle("-fx-text-fill: #e74c3c;");
-            vboxBillDetails.setVisible(false);
-            vboxBillDetails.setManaged(false);
-        } else {
-            currentOrderToPay = ChatClient.order;
-            String status = currentOrderToPay.getStatus();
-            
-            // 3. Status Validation (Copied from PaymentController)
-            if ("SEATED".equals(status)) {
-                // Valid status -> Proceed to show bill
-                showBill(currentOrderToPay);
-            } else {
-                // Invalid status handling
-                vboxBillDetails.setVisible(false);
-                vboxBillDetails.setManaged(false);
-                
-                if ("COMPLETED".equals(status) || "PAID".equals(status)) {
-                    lblStatus.setText("This order has already been paid.");
-                } else if ("WAITING".equals(status)) {
-                    lblStatus.setText("You are not seated yet. Cannot pay.");
-                } else {
-                    lblStatus.setText("Cannot pay. Order status: " + status);
-                }
-                lblStatus.setStyle("-fx-text-fill: #e74c3c;");
-            }
-        }
-    }
+	/**
+	 * Sends a request to the server to fetch order details. Uses a synchronized
+	 * wait loop to pause execution until the server responds with the Order object.
+	 * * @param confirmationCode The unique code of the order to fetch.
+	 */
+	private void fetchBillDetails(int confirmationCode) {
+		// Reset client data to ensure fresh results
+		ChatClient.order = null;
+		ChatClient.returnMessage = null;
 
-    /**
-     * Displays the bill details.
-     * <p>
-     * Provides a visual breakdown of the price and discount.
-     * </p>
-     */
-    private void showBill(Order order) {
-        vboxBillDetails.setVisible(true);
-        vboxBillDetails.setManaged(true);
-        lblStatus.setText(""); 
-        
-        double total = order.getTotalPrice(); 
-        double discount = 0;
-        
-        // Calculate Discount for Display (Terminal UX)
-        if (ChatClient.terminalMember != null) {
-            discount = total * 0.10;
-        }
+		// Request order from server
+		ClientUI.chat.accept(new BistroMessage(ActionType.GET_ORDER_BY_CODE, confirmationCode));
 
-        double finalPrice = total - discount;
+		// Synchronized wait for response (Max 2 seconds)
+		int attempts = 0;
+		while (ChatClient.order == null && ChatClient.returnMessage == null && attempts < 20) {
+			try {
+				Thread.sleep(100);
+				attempts++;
+			} catch (Exception e) {
+			}
+		}
 
-        // Update Labels
-        lblOrderInfo.setText("Order #" + order.getConfirmationCode() + " | Table: " + order.getAssignedTableId());
-        lblTotalAmount.setText("Subtotal: " + String.format("%.2f", total) + " NIS");
-        
-        if (discount > 0) {
-            lblDiscount.setText("Member Discount (10%): -" + String.format("%.2f", discount) + " NIS");
-            lblDiscount.setStyle("-fx-text-fill: #2ecc71;"); // Green
-        } else {
-            lblDiscount.setText("Standard Price (No Discount)");
-            lblDiscount.setStyle("-fx-text-fill: black;");
-        }
-        
-        lblFinalToPay.setText("TOTAL TO PAY: " + String.format("%.2f", finalPrice) + " NIS");
-    }
+		if (ChatClient.order == null) {
+			setStatus(lblStatus, "Order not found or invalid code.", false);
+			vboxBillDetails.setVisible(false);
+		} else {
+			currentOrderToPay = ChatClient.order;
+			validateAndShowBill();
+		}
+	}
 
-    /**
-     * Processes the payment.
-     * <p>
-     * Simulates card validation and sends {@code PAY_BILL}.
-     * </p>
-     */
-    @FXML
-    void performPayment(ActionEvent event) {
-        if (currentOrderToPay == null) return;
+	/**
+	 * Validates if the order status allows payment and displays the bill. *
+	 * Business Rule: Payment is strictly allowed only if the order status is SEATED
+	 * or BILLED. If the order is already PAID or waiting, an appropriate error is
+	 * shown.
+	 */
+	private void validateAndShowBill() {
+		String status = currentOrderToPay.getStatus();
 
-        // 1. Simulation: Validate "Credit Card" (In terminal, this is physical)
-        System.out.println("Terminal: Simulating Credit Card validation...");
-        // (Assuming hardware validation passed)
+		// Using equalsIgnoreCase to prevent errors if server sends "Billed" vs "BILLED"
+		if ("SEATED".equalsIgnoreCase(status) || "BILLED".equalsIgnoreCase(status)) {
+			showBillCalculation();
+		} else {
+			vboxBillDetails.setVisible(false);
+			if ("COMPLETED".equalsIgnoreCase(status) || "PAID".equalsIgnoreCase(status)) {
+				setStatus(lblStatus, "This bill has already been settled.", false);
+			} else {
+				setStatus(lblStatus, "Cannot pay now. Current status: " + status, false);
+			}
+		}
+	}
 
-        // 2. Send Payment Request
-        ClientUI.chat.accept(new BistroMessage(ActionType.PAY_BILL, currentOrderToPay.getConfirmationCode()));
+	/**
+	 * Calculates the final amount and updates the UI. * Logic: Checks if the user
+	 * operating the terminal is a recognized Member. [cite_start]If yes, applies a
+	 * 10% discount to the total price[cite: 51].
+	 */
+	private void showBillCalculation() {
+		vboxBillDetails.setVisible(true);
+		vboxBillDetails.setManaged(true);
 
-        // 3. Handle Result
-        if (ChatClient.operationSuccess) {
-            lblStatus.setText("Payment Successful! Thank you.");
-            lblStatus.setStyle("-fx-text-fill: #2ecc71; -fx-font-weight: bold;"); 
-            
-            btnPayNow.setDisable(true);
-            vboxBillDetails.setDisable(true);
-            
-            // Close window automatically
-            new Thread(() -> {
-                try { Thread.sleep(2000); } catch (Exception e) {}
-                Platform.runLater(() -> ((Stage) btnPayNow.getScene().getWindow()).close());
-            }).start();
-            
-        } else {
-            lblStatus.setText("Payment failed. Please try again.");
-            lblStatus.setStyle("-fx-text-fill: #e74c3c;");
-        }
-    }
-    
-    @FXML
-    void closeWindow(ActionEvent event) {
-        ((Stage) btnPayNow.getScene().getWindow()).close();
-    }
+		double finalAmount = currentOrderToPay.getTotalPrice();
+
+		// Apply 10% discount ONLY if a member is logged into the terminal
+		if (ChatClient.terminalMember != null) {
+			lblDiscount.setText("Member Discount (10%): -" + String.format("%.2f", finalAmount * 0.10) + " NIS");
+			lblDiscount.setStyle("-fx-text-fill: #2ecc71;");
+			// Adjust final price for display if logic requires showing discounted total
+			finalAmount = finalAmount * 0.90;
+		} else {
+			lblDiscount.setText("No Discount Applied");
+			lblDiscount.setStyle("-fx-text-fill: #7f8c8d;");
+		}
+
+		lblOrderInfo.setText("Order #" + currentOrderToPay.getConfirmationCode() + " | Table: "
+				+ currentOrderToPay.getAssignedTableId());
+		lblTotalAmount.setText("Subtotal: " + String.format("%.2f", currentOrderToPay.getTotalPrice()) + " NIS");
+		lblFinalToPay.setText("TOTAL: " + String.format("%.2f", finalAmount) + " NIS");
+	}
+
+	/**
+	 * Executes the payment transaction. Sends a PAY_BILL request to the server and
+	 * waits for confirmation. On success, it simulates freeing the table and closes
+	 * the window. * @param event The action event triggered by the Pay button.
+	 */
+	@FXML
+	void performPayment(ActionEvent event) {
+		if (currentOrderToPay == null)
+			return;
+
+		// Reset flag before request
+		ChatClient.operationSuccess = false;
+
+		// Send payment action to server
+		ClientUI.chat.accept(new BistroMessage(ActionType.PAY_BILL, currentOrderToPay.getConfirmationCode()));
+
+		// Synchronized wait for response
+		int attempts = 0;
+		// Wait until success flag turns true OR timeout
+		while (!ChatClient.operationSuccess && attempts < 20) {
+			try {
+				Thread.sleep(100);
+				attempts++;
+			} catch (Exception e) {
+			}
+		}
+
+		if (ChatClient.operationSuccess) {
+			setStatus(lblStatus, "Payment Successful! Table is now free.", true);
+			btnPayNow.setDisable(true);
+			txtOrderCode.setDisable(true);
+
+			// Auto-close after 2 seconds
+			new Thread(() -> {
+				try {
+					Thread.sleep(2000);
+				} catch (Exception e) {
+				}
+				Platform.runLater(() -> super.closeWindow(lblStatus));
+			}).start();
+		} else {
+			setStatus(lblStatus, "Payment failed. Please try again.", false);
+		}
+	}
+
 }

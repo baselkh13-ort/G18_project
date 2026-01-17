@@ -8,6 +8,7 @@ import client.ClientUI;
 import common.ActionType;
 import common.BistroMessage;
 import common.User;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -25,12 +26,14 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Stage;
 
 /**
- * Controller for the Member Management screen.
- * <p>
- * This screen allows Restaurant Staff (Workers/Managers) to view a list of all
- * registered members in the system. From here, the staff can select a specific
- * member to view their personal details and order history.
- * </p>
+ * Controller for the Table Management Screen.
+ *
+ * This class allows the Restaurant Manager to:
+ * - Add new tables to the restaurant layout.
+ * - Update the capacity of existing tables.
+ * - Remove tables from the restaurant.
+ * If the capacity decreases and future reservations cannot be accommodated, the server is responsible for canceling
+ * those orders and notifying the customers.
  */
 public class MemberManagementController implements Initializable {
 
@@ -53,17 +56,17 @@ public class MemberManagementController implements Initializable {
 	private Button btnViewDetails;
 	@FXML
 	private Button btnBack;
+	@FXML
+	private Button btnRefresh;
 
 	/**
 	 * Initializes the controller class.
-	 * <p>
 	 * This method is automatically called after the FXML file has been loaded. It
-	 * configures the table columns and loads the member data from the client's
-	 * memory.
-	 * </p>
+	 * configures the table columns and loads the initial member data from the
+	 * client's memory.
+	 * * @param location The location used to resolve relative paths for the root
+	 * object.
 	 * 
-	 * @param location  The location used to resolve relative paths for the root
-	 *                  object.
 	 * @param resources The resources used to localize the root object.
 	 */
 	@Override
@@ -73,10 +76,10 @@ public class MemberManagementController implements Initializable {
 	}
 
 	/**
-	 * Configures the TableView columns to bind to the User object properties.
+	 * Configures the TableView columns to bind to the User object properties. Uses
+	 * PropertyValueFactory to map the fields.
 	 */
 	private void setupTable() {
-
 		colId.setCellValueFactory(new PropertyValueFactory<>("userId"));
 		colFirstName.setCellValueFactory(new PropertyValueFactory<>("firstName"));
 		colLastName.setCellValueFactory(new PropertyValueFactory<>("lastName"));
@@ -86,34 +89,71 @@ public class MemberManagementController implements Initializable {
 
 	/**
 	 * Populates the table with member data.
-	 * <p>
-	 * This method retrieves the list of members from the static
-	 * {@link ChatClient#allMembers} list, which was pre-fetched by the previous
-	 * screen (WorkerMenuController).
-	 * </p>
+	 * Retrieves the list of members from the static {@link ChatClient#allMembers}
+	 * list. Wraps the list in an ObservableList for the JavaFX TableView.
 	 */
 	private void loadMembers() {
 		if (ChatClient.allMembers != null) {
 			ObservableList<User> data = FXCollections.observableArrayList(ChatClient.allMembers);
 			tblMembers.setItems(data);
+			tblMembers.refresh(); // Refreshes the visual elements of the table
 		}
 	}
 
 	/**
+	 * Handles the "Refresh" button click.
+	 * Sends a request to the server to fetch the most up-to-date list of members.
+	 * This runs on a separate thread to avoid freezing the UI while waiting for the
+	 * server.
+	 * * @param event The ActionEvent triggered by clicking the refresh button.
+	 */
+	@FXML
+	void refreshData(ActionEvent event) {
+		System.out.println("Refreshing member list...");
+
+		// 1. Clear local cache to ensure we get fresh data
+		ChatClient.allMembers = null;
+
+		// 2. Send request to Server
+		ClientUI.chat.accept(new BistroMessage(ActionType.GET_ALL_MEMBERS, null));
+
+		// 3. Create a background thread for waiting
+		new Thread(() -> {
+			int attempts = 0;
+			// Wait loop: checks if the server response has populated 'allMembers'
+			while (ChatClient.allMembers == null && attempts < 20) {
+				try {
+					Thread.sleep(100); // Wait 100ms between checks
+					attempts++;
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+
+			// 4. Update the UI on the JavaFX Application Thread
+			Platform.runLater(() -> {
+				if (ChatClient.allMembers != null) {
+					loadMembers(); // Reload data into the table
+					System.out.println("GUI: Refresh complete.");
+				} else {
+					// Handle server timeout or error
+					Alert alert = new Alert(AlertType.ERROR);
+					alert.setTitle("Connection Error");
+					alert.setContentText("Failed to retrieve data from server. Please try again.");
+					alert.show();
+				}
+			});
+		}).start();
+	}
+
+	/**
 	 * Handles the "View Details & History" button click.
-	 * <p>
+	 *
 	 * Logic flow:
-	 * <ol>
-	 * <li>Checks if a user is selected in the table.</li>
-	 * <li>Sends a request to the server to fetch the specific
-	 * order history for the selected user ID.</li>
-	 * <li>Waits for the server response (handled via {@link ClientUI#chat}).</li>
-	 * <li>Loads the {@code MemberDetails.fxml} screen.</li>
-	 * <li>Passes the selected User object to the new controller via
-	 * {@code initData}.</li>
-	 * <li>Opens the details window.</li>
-	 * </ol>
-	 * </p>
+	 * 1. Validates that a row is selected.
+	 * 2. Requests the order history for the selected user from the server.
+	 * 3. Waits for the server response (Synchronized wait loop).
+	 * 4. Opens the MemberDetails.fxml screen with the populated data.
 	 *
 	 * @param event The ActionEvent triggered by clicking the button.
 	 */
@@ -131,21 +171,32 @@ public class MemberManagementController implements Initializable {
 		}
 
 		try {
-			//Request history for the selected user from the server
+			// Reset the order history cache before requesting new data
+			ChatClient.listOfOrders = null;
+
+			// Request history for the selected user
 			BistroMessage msg = new BistroMessage(ActionType.GET_USER_HISTORY, selectedUser.getUserId());
 			ClientUI.chat.accept(msg);
-			// Execution halts here until the server responds and fills
-			// ChatClient.listOfOrders
 
-			//Load the Details Screen
+			// Synchronized Wait Loop: Wait for server response
+			int attempts = 0;
+			while (ChatClient.listOfOrders == null && attempts < 20) {
+				try {
+					Thread.sleep(100);
+					attempts++;
+				} catch (Exception e) {
+				}
+			}
+
+			// Load the Details Screen FXML
 			FXMLLoader loader = new FXMLLoader(getClass().getResource("/gui/staff/MemberDetails.fxml"));
 			Parent root = loader.load();
 
-			//Initialize the next controller with the selected user's data
+			// Initialize the next controller with the selected user's data
 			MemberDetailsController controller = loader.getController();
 			controller.initData(selectedUser);
 
-			//Display the new window
+			// Open the new stage
 			Stage stage = new Stage();
 			stage.setTitle("Member Details: " + selectedUser.getFirstName());
 			stage.setScene(new Scene(root));

@@ -13,19 +13,17 @@ import java.util.Random;
 
 /**
  * Controller class for the Digital Member Card screen.
- * <p>
  * Displays member details including Username, Phone, Email, and generates a QR simulation.
- * </p>
  */
 public class MemberCardController {
 
-    // --- FXML Components ---
+    //FXML Components
     
     @FXML private Label lblFullName;
-    @FXML private Label lblUsername; // New
+    @FXML private Label lblUsername; 
     @FXML private Label lblMemberID;
-    @FXML private Label lblPhone;    // New
-    @FXML private Label lblEmail;    // New
+    @FXML private Label lblPhone;    
+    @FXML private Label lblEmail;   
     @FXML private Label lblMemberCode;
     @FXML private Canvas qrCanvas;
 

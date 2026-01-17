@@ -11,28 +11,22 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
 
 /**
- * Controller for canceling an order via the Terminal (Kiosk).
- * <p>
- * <b>Requirement Implementation:</b>
- * Implements requirement #32: "The customer can cancel the order at any time...
- * at one of the terminals".
- * </p>
- * <p>
- * <b>Logic Flow:</b>
- * <ul>
- * <li><b>Identified Member:</b> If the user has already identified (card swipe/login) 
+ * Controller for canceling an order via the Terminal.
+ *
+ * Requirement Implementation:
+ * The customer can cancel the order at any time at one of the terminals.
+ *
+ * Logic Flow:
+ * - Identified Member: If the user has already identified (card swipe/login) 
  * at the main terminal screen, they only need to enter the Order Code. Verification 
- * is done automatically against their Member ID.</li>
- * * <li><b>Guest / Unidentified:</b> Must enter the Order Code AND a verification detail.
+ * is done automatically against their Member ID.
+ * - Guest / Unidentified: Must enter the Order Code AND a verification detail.
  * According to requirements, a guest provides a Phone Number OR Email during booking.
- * Therefore, they must enter one of these to verify ownership of the order.</li>
- * </ul>
- * </p>
+ * Therefore, they must enter one of these to verify ownership of the order.
  */
-public class TerminalCancelController {
+public class TerminalCancelController extends AbstractTerminalController {
 
     @FXML private TextField txtOrderCode;
     
@@ -45,7 +39,6 @@ public class TerminalCancelController {
     /**
      * Input field for Guest verification. 
      * Accepts either Phone Number or Email Address.
-     * Note: Ensure fx:id in FXML matches this name.
      */
     @FXML private TextField txtIdentification; 
     
@@ -77,15 +70,13 @@ public class TerminalCancelController {
 
     /**
      * Handles the cancellation request when the user clicks "Cancel Order".
-     * <p>
-     * <b>Steps:</b>
-     * <ol>
-     * <li>Validates that inputs are not empty.</li>
-     * <li>Fetches the Order object from the server using the Order Code.</li>
-     * <li>Verifies authorization (matches Member ID or Phone/Email).</li>
-     * <li>Sends the cancellation command to the server.</li>
-     * </ol>
-     * </p>
+     *
+     * Steps:
+     * 1. Validates that inputs are not empty.
+     * 2. Fetches the Order object from the server using the Order Code.
+     * 3. Verifies authorization (matches Member ID or Phone/Email).
+     * 4. Sends the cancellation command to the server.
+     *
      * @param event The button click event.
      */
     @FXML
@@ -95,15 +86,13 @@ public class TerminalCancelController {
 
         // 1. Basic Validation - Order Code is always required
         if (codeInput.isEmpty()) {
-            lblStatus.setText("Error: Order Code is required.");
-            lblStatus.setStyle("-fx-text-fill: #e74c3c;"); // Red color
+            setStatus(lblStatus, "Error: Order Code is required.", false);
             return;
         }
 
         // If guest (not identified), the identification field is mandatory
         if (ChatClient.terminalMember == null && identificationInput.isEmpty()) {
-            lblStatus.setText("Error: Phone or Email is required for verification.");
-            lblStatus.setStyle("-fx-text-fill: #e74c3c;");
+            setStatus(lblStatus, "Error: Phone or Email is required for verification.", false);
             return;
         }
 
@@ -115,16 +104,14 @@ public class TerminalCancelController {
             Order targetOrder = ChatClient.order; // The static field updated by ChatClient
 
             if (targetOrder == null) {
-                lblStatus.setText("Error: Order not found.");
-                lblStatus.setStyle("-fx-text-fill: #e74c3c;");
+                setStatus(lblStatus, "Error: Order can not be cancelled.", false);
                 return;
             }
 
             // 3. Security Check (Authorization)
             // Verify that this order belongs to the person standing at the terminal
             if (!isAuthorized(targetOrder, identificationInput)) {
-                lblStatus.setText("Error: Identification failed. Details do not match.");
-                lblStatus.setStyle("-fx-text-fill: #e74c3c;");
+                setStatus(lblStatus, "Error: Identification failed. Details do not match.", false);
                 return;
             }
 
@@ -132,35 +119,29 @@ public class TerminalCancelController {
             ClientUI.chat.accept(new BistroMessage(ActionType.CANCEL_ORDER, orderCode));
             
             if (ChatClient.operationSuccess) {
-                lblStatus.setText("Success! Order #" + orderCode + " cancelled.");
-                lblStatus.setStyle("-fx-text-fill: #2ecc71;"); // Green color
+                setStatus(lblStatus, "Success! Order " + orderCode + " cancelled.", true);
                 txtOrderCode.setDisable(true);      // Disable input to prevent double submission
                 txtIdentification.setDisable(true); 
             } else {
-                lblStatus.setText("Error: Could not cancel order (Server Error).");
-                lblStatus.setStyle("-fx-text-fill: #e74c3c;");
+                setStatus(lblStatus, "Error: Could not cancel order (Server Error).", false);
             }
 
         } catch (NumberFormatException e) {
-            lblStatus.setText("Error: Order Code must be numbers only.");
-            lblStatus.setStyle("-fx-text-fill: #e74c3c;");
+            setStatus(lblStatus, "Error: Order Code must be numbers only.", false);
         } catch (Exception e) {
             e.printStackTrace();
-            lblStatus.setText("System Error: " + e.getMessage());
-            lblStatus.setStyle("-fx-text-fill: #e74c3c;");
+            setStatus(lblStatus, "System Error: " + e.getMessage(), false);
         }
     }
 
     /**
      * Verifies if the current user is authorized to cancel the specific order.
-     * <p>
+     *
      * Logic:
-     * <ul>
-     * <li>If the user is a <b>Member</b>: Checks if the Order's MemberID matches the logged-in UserID.</li>
-     * <li>If the user is a <b>Guest</b>: Checks if the input string matches EITHER the Order's phone number OR the Order's email.</li>
-     * </ul>
-     * </p>
-     * * @param order The order object fetched from the server.
+     * - If the user is a Member: Checks if the Order's MemberID matches the logged-in UserID.
+     * - If the user is a Guest: Checks if the input string matches EITHER the Order's phone number OR the Order's email.
+     *
+     * @param order The order object fetched from the server.
      * @param inputIdentifier The string entered by the user (Phone or Email).
      * @return true if the user owns the order, false otherwise.
      */
@@ -181,14 +162,5 @@ public class TerminalCancelController {
         }
         
         return false;
-    }
-
-    /**
-     * Closes the popup window.
-     * @param event The action event.
-     */
-    @FXML
-    void closeWindow(ActionEvent event) {
-        ((Stage) btnClose.getScene().getWindow()).close();
     }
 }

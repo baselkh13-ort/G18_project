@@ -35,9 +35,9 @@
 		</TableView>
 
 		<Button layoutX="22.0" layoutY="570.0" mnemonicParsing="false"
-			onAction="#getBackBtn" text="Back to Menu" />
+			onAction="#getBackBtn" text="Back to Menu" styleClass="back-button"/>
 			
-		<Button fx:id="btnRefresh" layoutX="140.0" layoutY="570.0" 
+		<Button fx:id="btnRefresh" layoutX="150.0" layoutY="570.0" 
 			mnemonicParsing="false" onAction="#clickRefresh" text="Refresh List" />
 			
 	</children>

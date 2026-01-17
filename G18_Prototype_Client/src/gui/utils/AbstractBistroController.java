@@ -15,10 +15,8 @@ import javafx.stage.Stage;
 
 /**
  * Abstract Base Controller.
- * <p>
  * Implements REUSE by centralizing common logic shared across multiple screens,
  * such as Logout functionality and Alert dialogs.
- * </p>
  */
 public abstract class AbstractBistroController {
 

@@ -16,23 +16,19 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.stage.Stage;
 
 /**
  * Controller for the "Join Waiting List" screen at the Restaurant Terminal.
- * <p>
- * <b>Requirement Implementation:</b> Allows any customer (Member or Guest) to
- * join the waiting list for a table.
- * </p>
- * <p>
- * <b>Logic Flow:</b>
- * <ul>
- * <li><b>Member:</b> If identified via card swipe (Login), details are
- * auto-filled.</li> Guest:Must manually enter Name, Diners, and at least one
- * identifier (Phone OR Email). Output: Returns a Confirmation Code to the user
- * upon success.
+ *
+ * Requirement Implementation:
+ * Allows any customer (Member or Guest) to join the waiting list for a table.
+ *
+ * Logic Flow:
+ * - Member: If identified via card swipe (Login), details are auto-filled.
+ * - Guest: Must manually enter Name, Number of Diners, and at least one identifier (Phone OR Email).
+ * - Output: Returns a Confirmation Code to the user upon success.
  */
-public class EnterWaitingListController implements Initializable {
+public class EnterWaitingListController extends AbstractTerminalController implements Initializable {
 
 	@FXML
 	private ComboBox<Integer> cmbDiners;
@@ -70,7 +66,7 @@ public class EnterWaitingListController implements Initializable {
 			// Lock fields that shouldn't change
 			txtName.setEditable(false);
 
-			setStatus("Welcome back, " + ChatClient.terminalMember.getFirstName(), true);
+			setStatus(lblStatus,"Welcome back, " + ChatClient.terminalMember.getFirstName(), true);
 		}
 	}
 
@@ -91,26 +87,26 @@ public class EnterWaitingListController implements Initializable {
 
 		// Requirement: Must specify number of diners
 		if (diners == null) {
-			setStatus("Error: Please select number of guests.", false);
+			setStatus(lblStatus,"Error: Please select number of guests.", false);
 			return;
 		}
 
 		// Requirement: Name is mandatory for the host to call out
 		if (name.isEmpty()) {
-			setStatus("Error: Please enter your name.", false);
+			setStatus(lblStatus,"Error: Please enter your name.", false);
 			return;
 		}
 
 		// Guest must provide "Phone AND/OR Email" If both are empty, we block the
 		// request.
 		if (phone.isEmpty() && email.isEmpty()) {
-			setStatus("Error: Must provide Phone OR Email.", false);
+			setStatus(lblStatus,"Error: Must provide Phone OR Email.", false);
 			return;
 		}
 		// Validation: Phone Format (starts with 0, total 10 digits)
 		if (!phone.isEmpty()) {
 			if (!phone.matches("^0\\d{8,9}$")) {
-				setStatus("Error: Invalid phone number (e.g., 0501234567).", false);
+				setStatus(lblStatus,"Error: Invalid phone number (e.g., 0501234567).", false);
 				return;
 			}
 		}
@@ -118,7 +114,7 @@ public class EnterWaitingListController implements Initializable {
 		// Validation: Email Format
 		if (!email.isEmpty()) {
 			if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
-				setStatus("Error: Invalid email address format.", false);
+				setStatus(lblStatus,"Error: Invalid email address format.", false);
 				return;
 			}
 		}
@@ -152,12 +148,12 @@ public class EnterWaitingListController implements Initializable {
 			if ("SEATED".equals(ChatClient.order.getStatus()) && ChatClient.order.getAssignedTableId() != null) {
 				// CASE A: Table Available
 				int tableId = ChatClient.order.getAssignedTableId();
-				setStatus("A table is available! Please proceed to Table:" + tableId, true);
+				setStatus(lblStatus,"A table is available! Please proceed to Table:" + tableId, true);
 				lblStatus.setStyle("-fx-text-fill: #2ecc71; -fx-font-weight: bold; -fx-font-size: 16px;");
 			} else {
 				// CASE B: Added to Waiting List
 				int code = ChatClient.order.getConfirmationCode();
-				setStatus("Success! Your Code: " + code, true);
+				setStatus(lblStatus,"Success! Your Code: " + code, true);
 				lblStatus.setStyle("-fx-text-fill: #2ecc71; -fx-font-weight: bold;"); // Green
 			}
 			// Disable button to prevent double-submit
@@ -167,27 +163,8 @@ public class EnterWaitingListController implements Initializable {
 		} else {
 			// Error handling
 			String errorMsg = (ChatClient.returnMessage != null) ? ChatClient.returnMessage : "Failed to join list.";
-			setStatus("Error: " + errorMsg, false);
+			setStatus(lblStatus,"Error: " + errorMsg, false);
 		}
 	}
 
-	/**
-	 * Updates the status label text and color.
-	 * 
-	 * @param msg       The message to display.
-	 * @param isSuccess True for green text, False for red text.
-	 */
-	private void setStatus(String msg, boolean isSuccess) {
-		lblStatus.setText(msg);
-		if (isSuccess) {
-			lblStatus.setStyle("-fx-text-fill: #2ecc71;"); // Green
-		} else {
-			lblStatus.setStyle("-fx-text-fill: #e74c3c;"); // Red
-		}
-	}
-
-	@FXML
-	void closeWindow(ActionEvent event) {
-		((Stage) btnClose.getScene().getWindow()).close();
-	}
 }

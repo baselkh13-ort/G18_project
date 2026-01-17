@@ -25,10 +25,8 @@ import javafx.stage.StageStyle;
 
 /**
  * Controller class for the Client Registration screen.
- * <p>
  * Handles the registration flow: Validates input, registers user, 
  * shows simulation SMS, displays the Digital Card, and redirects back to the menu.
- * </p>
  */
 public class RegisterClientController {
 
@@ -43,12 +41,10 @@ public class RegisterClientController {
 
     /**
      * Handles the registration submission.
-     * <p>
      * If registration is successful:
      * 1. Shows SMS simulation alert.
      * 2. Opens the Digital Card popup (and waits for it to close).
      * 3. Navigates back to the main menu automatically.
-     * </p>
      * @param event The button click event.
      */
     @FXML
@@ -84,7 +80,7 @@ public class RegisterClientController {
             return;
         }
 
-        // --- Server Communication ---
+        // Server Communication
         int userID = Integer.parseInt(idStr);
         ChatClient.registeredUser = null; 
         
@@ -92,7 +88,7 @@ public class RegisterClientController {
         BistroMessage msg = new BistroMessage(ActionType.REGISTER_CLEINT, newUser);
         ClientUI.chat.accept(msg);
 
-        // --- Response Handling ---
+        //Response Handling 
         if (ChatClient.registeredUser != null) {
             User savedUser = ChatClient.registeredUser;
             
@@ -112,9 +108,7 @@ public class RegisterClientController {
     
     /**
      * Opens the Digital Member Card in a modal window.
-     * <p>
      * Uses {@code showAndWait()} to block execution until the user closes the card.
-     * </p>
      * @param user The registered user details.
      */
     private void openMemberCardWindow(User user) {

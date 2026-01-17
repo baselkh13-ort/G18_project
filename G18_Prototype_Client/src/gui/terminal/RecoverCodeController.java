@@ -10,16 +10,13 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
 
 /**
  * Controller for the "Lost Confirmation Code" screen.
- * <p>
  * Implements requirement #45: "If the Confirmation Code is lost... the code
  * will be sent via Email and SMS".
- * </p>
  */
-public class RecoverCodeController {
+public class RecoverCodeController extends AbstractTerminalController  {
 
     @FXML private VBox vboxInput;
     @FXML private TextField txtIdentifier; // Phone or Email
@@ -63,20 +60,22 @@ public class RecoverCodeController {
         // Send to Server
         ClientUI.chat.accept(new BistroMessage(ActionType.RESTORE_CODE, input));
 
-        // Handle Response (Simulation)
-        if (ChatClient.operationSuccess) {
-            lblStatus.setText("Code sent successfully via SMS & Email!");
-            lblStatus.setStyle("-fx-text-fill: #2ecc71; -fx-font-weight: bold;"); // Green
+     // 5. Handle Response
+        if (ChatClient.order != null) {
+            // Success: Extract the code from the returned Order object            
+            setStatus(lblStatus,"Success! Code sent to your Email/SMS.", true);
+            
+            // UI Cleanup
             btnSend.setDisable(true);
-            btnClose.setText("Close");
+            txtIdentifier.setDisable(true);
+            btnClose.setText("Done");
+            
         } else {
-            lblStatus.setText("Error: No active order found for these details.");
-            lblStatus.setStyle("-fx-text-fill: #e74c3c;"); // Red
+            // Failure: Server couldn't find an order or returned an error message
+            String errorMsg = (ChatClient.returnMessage != null) ? ChatClient.returnMessage : "No active order found for these details.";
+            setStatus(lblStatus,"Error: " + errorMsg, false);
         }
     }
 
-    @FXML
-    void closeWindow(ActionEvent event) {
-        ((Stage) btnClose.getScene().getWindow()).close();
-    }
+
 }

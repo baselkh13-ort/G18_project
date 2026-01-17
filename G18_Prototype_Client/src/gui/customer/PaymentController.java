@@ -23,26 +23,17 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 /**
- * Controller for the Bill Payment Screen.
- * <p>
- * This screen allows customers (Members and Guests) to pay their bill remotely
- * using the Confirmation Code received during booking or joining to the waiting
- * list.
- * </p>
- * <p>
- * <b>Business Rules Implemented:</b>
- * <ul>
- * <li>Payment is identified by Confirmation Code.</li>
- * <li><b>Members:</b> Receive a 10% discount on the total bill.</li>
- * <li><b>Guests:</b> Pay the full price.</li>
- * <li><b>Table Release:</b> Upon successful payment, the table is freed
- * immediately.</li>
- * </ul>
- * </p>
+ * Controller for the Bill Payment Screen. * This screen allows customers
+ * (Members and Guests) to pay their bill remotely using the Confirmation Code
+ * received during booking or joining the waiting list. * Business Rules
+ * Implemented: - Payment is identified by Confirmation Code. - Members: Receive
+ * a 10% discount on the total bill. - Guests: Pay the full price. - Table
+ * Release: Upon successful payment, the table is freed immediately. -
+ * Eligibility: Payment is allowed only if the order status is SEATED or BILLED.
  */
 public class PaymentController implements Initializable {
 
-	// Search Section
+	//Search Section
 	@FXML
 	private TextField txtConfirmationCode;
 	@FXML
@@ -75,7 +66,6 @@ public class PaymentController implements Initializable {
 
 	private Order currentOrder = null;
 
-
 	/**
 	 * Initializes the controller class. Hides the bill details section until a
 	 * valid order is found.
@@ -88,175 +78,173 @@ public class PaymentController implements Initializable {
 	}
 
 	/**
-     * Step 1: Search for the order/bill by Confirmation Code.
-     * <p>
-     * Sends a request to the server to fetch the order details based on the code provided.
-     * <b>Validation:</b> Payment is allowed ONLY if the order status is 'SEATED'.
-     * </p>
-     * @param event The ActionEvent triggered by clicking the search button.
-     */
-    @FXML
-    public void clickSearchOrder(ActionEvent event) {
-        lblSearchError.setText("");
-        String codeStr = txtConfirmationCode.getText().trim();
-        
-        if (codeStr.isEmpty()) {
-            lblSearchError.setText("Please enter a confirmation code.");
-            return;
-        }
-
-        try {
-            Integer confirmationCode = Integer.parseInt(codeStr);
-
-            // Send request to server to get order details
-            BistroMessage msg = new BistroMessage(ActionType.GET_ORDER_BY_CODE, confirmationCode);
-            ClientUI.chat.accept(msg);
-
-            // Check if order exists
-            if (ChatClient.order == null) {
-                lblSearchError.setText("Order not found.");
-                vboxBillDetails.setVisible(false);
-                vboxBillDetails.setManaged(false);
-            } else {
-                this.currentOrder = ChatClient.order;
-                
-                // Check Status
-                String status = currentOrder.getStatus();
-                
-                if ("SEATED".equals(status)) {
-                    // Valid status -> Proceed to show bill
-                    displayBillDetails();
-                } else {
-                    // Invalid status (e.g., WAITING, PAID, CANCELED)
-                    vboxBillDetails.setVisible(false);
-                    vboxBillDetails.setManaged(false);
-                    
-                    if ("COMPLETED".equals(status) || "PAID".equals(status)) {
-                        lblSearchError.setText("This order has already been paid.");
-                    } else if ("WAITING".equals(status)) {
-                        lblSearchError.setText("You are not seated yet. Cannot pay.");
-                    } else {
-                        lblSearchError.setText("Cannot pay. Order status: " + status);
-                    }
-                }
-            }
-        
-        } catch (NumberFormatException e) {
-            lblSearchError.setText("Code must be numbers only.");
-        } catch (Exception e) {
-            e.printStackTrace();
-            lblSearchError.setText("Communication error.");
-        }
-    }
-	/**
-     * Step 2: Display bill details based on Server Calculation.
-     * <p>
-     * This method updates the UI with the final price received from the server.
-     * It also adds a visual indicator if the customer is a Member, confirming that
-     * their discount has been applied.
-     * </p>
-     */	
-	private void displayBillDetails() {
-        // Show the bill box
-        vboxBillDetails.setVisible(true);
-        vboxBillDetails.setManaged(true);	
-        //Get the FINAL price directly from the Server Order object
-        double finalPrice = currentOrder.getTotalPrice();
-		
-        lblOrderNumber.setText("Order #" + currentOrder.getConfirmationCode());
-        lblTotalToPay.setText(String.format("TOTAL TO PAY: $%.2f", finalPrice));
-        
-        User currentUser = ChatClient.user;
-        if (currentUser != null && currentUser.getRole() == Role.MEMBER) {
-            // Member found - Display a message
-            lblStatusText.setText("Member Discount (10%) included in total.");
-        } else {
-            // Guest or not logged in
-            lblStatusText.setText("Standard Price");
-        }
-	}
-	
-	/**
-     * Step 3: Process Payment.
-     * <p>
-     * Sends a request to the server to close the order.
-     * The server will handle the logic of freeing the table immediately.
-     * </p>
-     *
-     * @param event The ActionEvent triggered by clicking 'Pay Now'.
-     */	
+	 * Step 1: Search for the order/bill by Confirmation Code. * Sends a request to
+	 * the server to fetch the order details based on the code provided. Validation:
+	 * Payment is allowed ONLY if the order status is 'SEATED' or 'BILLED'. * @param
+	 * event The ActionEvent triggered by clicking the search button.
+	 */
 	@FXML
-    public void clickPay(ActionEvent event) {
-        // Basic validation (Simulation)
-        if (txtCreditCard.getText().isEmpty() || txtCVV.getText().isEmpty() || txtExpiryDate.getText().isEmpty()) {
-        	showAlert("Validation Error", "Please fill in all credit card details (Number, CVV, Date).");    
-        	return;
-        }	
-		
-        try {
-            // Send Payment Request to Server
-            BistroMessage msg = new BistroMessage(ActionType.PAY_BILL, currentOrder.getConfirmationCode()); 
-            ClientUI.chat.accept(msg);
+	public void clickSearchOrder(ActionEvent event) {
+		lblSearchError.setText("");
+		String codeStr = txtConfirmationCode.getText().trim();
 
-            if (ChatClient.operationSuccess) {
-                showAlert("Payment Successful", "Thank you!");
-                clickBack(event);
-            } else {
-                showAlert("Error", "Payment failed. Please try again.");
-            }
+		if (codeStr.isEmpty()) {
+			lblSearchError.setText("Please enter a confirmation code.");
+			return;
+		}
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            showAlert("System Error", "Communication failed.");
-        }
+		try {
+			Integer confirmationCode = Integer.parseInt(codeStr);
+
+			// Reset client data to ensure fresh results
+			ChatClient.order = null;
+
+			// Send request to server to get order details
+			BistroMessage msg = new BistroMessage(ActionType.GET_ORDER_BY_CODE, confirmationCode);
+			ClientUI.chat.accept(msg);
+
+			// Check if order exists
+			if (ChatClient.order == null) {
+				lblSearchError.setText("Order not found.");
+				vboxBillDetails.setVisible(false);
+				vboxBillDetails.setManaged(false);
+			} else {
+				this.currentOrder = ChatClient.order;
+
+				// 5. Check Status (Updated Logic)
+				String status = currentOrder.getStatus();
+
+				// Allow payment if status is SEATED or BILLED
+				if ("SEATED".equals(status) || "BILLED".equals(status)) {
+					// Valid status -> Proceed to show bill
+					displayBillDetails();
+				} else {
+					// Invalid status
+					vboxBillDetails.setVisible(false);
+					vboxBillDetails.setManaged(false);
+
+					if ("COMPLETED".equals(status) || "PAID".equals(status)) {
+						lblSearchError.setText("This order has already been paid.");
+					} else if ("WAITING".equals(status)) {
+						lblSearchError.setText("You are currently waiting. Please get seated first.");
+					} else if ("CANCELLED".equals(status)) {
+						lblSearchError.setText("This order has been cancelled.");
+					} else {
+						lblSearchError.setText("Cannot pay. Order status: " + status);
+					}
+				}
+			}
+
+		} catch (NumberFormatException e) {
+			lblSearchError.setText("Code must be numbers only.");
+		} catch (Exception e) {
+			e.printStackTrace();
+			lblSearchError.setText("Communication error.");
+		}
 	}
-	
-	/**
-     * Displays an information alert to the user.
-     * @param title The title of the alert.
-     * @param content The message content.
-     */
-	private void showAlert(String title, String content) {
-        Alert alert = new Alert(AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
-    }
-	
-	/**
-     * Navigates back to the main User Menu.
-     * @param event The event triggered by the back button.
-     */
-    @FXML
-    public void clickBack(ActionEvent event) {
-        try {
-            ((Node) event.getSource()).getScene().getWindow().hide();
-            Stage primaryStage = new Stage();
-            UserMenuController menu = new UserMenuController();
-            menu.start(primaryStage);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-	
-	
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
 
+	/**
+	 * Step 2: Display bill details based on Server Calculation. * This method
+	 * updates the UI with the final price received from the server. It also adds a
+	 * visual indicator if the customer is a Member, confirming that their discount
+	 * has been applied.
+	 */
+	private void displayBillDetails() {
+		// Show the bill box
+		vboxBillDetails.setVisible(true);
+		vboxBillDetails.setManaged(true);
+
+		// Get the FINAL price directly from the Server Order object
+		double finalPrice = currentOrder.getTotalPrice();
+
+		lblOrderNumber.setText("Order #" + currentOrder.getConfirmationCode());
+		lblTotalToPay.setText(String.format("TOTAL TO PAY: $%.2f", finalPrice));
+
+		User currentUser = ChatClient.user;
+		if (currentUser != null && currentUser.getRole() == Role.MEMBER) {
+			// Member found - Display a message
+			lblStatusText.setText("Member Discount (10%) included in total.");
+		} else {
+			// Guest or not logged in
+			lblStatusText.setText("Standard Price");
+		}
+	}
+
+	/**
+	 * Step 3: Process Payment. * Sends a request to the server to close the order.
+	 * The server will handle the logic of freeing the table immediately. * @param
+	 * event The ActionEvent triggered by clicking 'Pay Now'.
+	 */
+	@FXML
+	public void clickPay(ActionEvent event) {
+		// Basic validation (Simulation)
+		if (txtCreditCard.getText().isEmpty() || txtCVV.getText().isEmpty() || txtExpiryDate.getText().isEmpty()) {
+			showAlert("Validation Error", "Please fill in all credit card details (Number, CVV, Date).");
+			return;
+		}
+
+		try {
+			// Reset success flag
+			ChatClient.operationSuccess = false;
+
+			// Send Payment Request to Server
+			BistroMessage msg = new BistroMessage(ActionType.PAY_BILL, currentOrder.getConfirmationCode());
+			ClientUI.chat.accept(msg);
+
+			// Wait for confirmation
+			int attempts = 0;
+			// Assuming operationSuccess defaults to false and changes to true on success
+			// Note: Ideally we should wait for a specific response flag, but using a short
+			// delay here
+			while (!ChatClient.operationSuccess && attempts < 20) {
+				try {
+					Thread.sleep(100);
+					attempts++;
+				} catch (Exception e) {
+				}
+			}
+
+			if (ChatClient.operationSuccess) {
+				showAlert("Payment Successful", "Thank you! The table has been freed.");
+				clickBack(event);
+			} else {
+				showAlert("Error", "Payment processing failed. Please try again.");
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			showAlert("System Error", "Communication failed.");
+		}
+	}
+
+	/**
+	 * Displays an information alert to the user.
+	 * 
+	 * @param title   The title of the alert.
+	 * @param content The message content.
+	 */
+	private void showAlert(String title, String content) {
+		Alert alert = new Alert(AlertType.INFORMATION);
+		alert.setTitle(title);
+		alert.setHeaderText(null);
+		alert.setContentText(content);
+		alert.showAndWait();
+	}
+
+	/**
+	 * Navigates back to the main User Menu.
+	 * 
+	 * @param event The event triggered by the back button.
+	 */
+	@FXML
+	public void clickBack(ActionEvent event) {
+		try {
+			((Node) event.getSource()).getScene().getWindow().hide();
+			Stage primaryStage = new Stage();
+			UserMenuController menu = new UserMenuController();
+			menu.start(primaryStage);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }

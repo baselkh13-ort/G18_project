@@ -1,8 +1,6 @@
-/* =============================================================================
-   Terminal.css
+/* Terminal.css
    Style definitions for the Customer Kiosk/Terminal interface.
-   Theme: Dark Blue-Grey (Modern, Clean, High Contrast)
-   ============================================================================= */
+   Theme: Dark Blue-Grey (Modern, Clean, High Contrast) */
 
 /* --- Main Background & Font Settings --- */
 .root {
@@ -10,7 +8,7 @@
     -fx-font-family: "Segoe UI", sans-serif;
 }
 
-/* --- Typography --- */
+/*Typography*/
 .label {
     -fx-text-fill: white;
 }
@@ -22,7 +20,7 @@
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 3, 0, 0, 1);
 }
 
-/* --- Simulation Area (For Card Reader / QR) --- */
+/* Simulation Area (For Card Reader / QR)  */
 .simulation-area {
     -fx-background-color: #34495e;
     -fx-background-radius: 10;
@@ -32,7 +30,7 @@
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);
 }
 
-/* --- Primary Terminal Buttons (The Big Buttons) --- */
+/* Primary Terminal Buttons (The Big Buttons)  */
 /* This class is now used for ALL 6 buttons */
 .terminal-button {
     -fx-background-color: #34495e;

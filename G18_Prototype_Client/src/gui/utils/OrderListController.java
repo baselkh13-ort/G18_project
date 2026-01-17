@@ -26,10 +26,8 @@ import javafx.stage.Stage;
 
 /**
  * Controller class for displaying the list of orders.
- * <p>
  * This screen allows staff to view all orders and refresh the list 
  * to see real-time updates from the database.
- * </p>
  */
 public class OrderListController implements Initializable {
 
@@ -60,9 +58,7 @@ public class OrderListController implements Initializable {
 
     /**
      * Initializes the controller class.
-     * <p>
      * Sets up the table columns and loads the initial data.
-     * </p>
      */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -84,9 +80,7 @@ public class OrderListController implements Initializable {
     
     /**
      * Helper method to populate the table with data from ChatClient.
-     * <p>
      * This is separated so it can be reused by the Refresh button.
-     * </p>
      */
     private void loadTableData() {
         tblOrders.getItems().clear(); // Clear existing items to avoid duplicates
@@ -102,17 +96,14 @@ public class OrderListController implements Initializable {
 
     /**
      * Handles the "Refresh" button click.
-     * <p>
      * Sends a request to the server to fetch the most up-to-date list of orders
      * and then reloads the table.
-     * </p>
      * @param event The ActionEvent triggered by the button.
      */
     @FXML
     public void clickRefresh(ActionEvent event) {
         try {
             // 1. Send request to server to get fresh data
-            // NOTE: Change ActionType.GET_ALL_ORDERS to match your specific Enum for this list
             BistroMessage msg = new BistroMessage(ActionType.GET_ALL_ORDERS, null); 
             ClientUI.chat.accept(msg); 
             

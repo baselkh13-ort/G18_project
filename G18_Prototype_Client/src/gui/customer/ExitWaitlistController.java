@@ -21,15 +21,13 @@ import javafx.stage.Stage;
 
 /**
  * Controller for the "Exit Waiting List" screen.
- * <p>
  * This class handles the logic for removing a customer from the waiting list.
  * It captures the unique confirmation code from the user, validates that it is a number,
  * sends a cancellation request to the server, and provides feedback based on the response.
- * </p>
  */
 public class ExitWaitlistController implements Initializable {
 
-    // --- FXML Components ---
+    //FXML Components
 
     @FXML
     private Label lblTitle;
@@ -56,11 +54,9 @@ public class ExitWaitlistController implements Initializable {
 
     /**
      * Initializes the controller class.
-     * <p>
      * This method is called automatically after the FXML file has been loaded. 
      * It sets up the UI text and ensures the input field is visible for all users,
      * as the server requires a specific confirmation code (Integer) to identify the order.
-     * </p>
      *
      * @param location  The location used to resolve relative paths for the root object.
      * @param resources The resources used to localize the root object.
@@ -82,11 +78,9 @@ public class ExitWaitlistController implements Initializable {
 
     /**
      * Handles the "Confirm Exit" button click event.
-     * <p>
      * This method retrieves the input string, parses it into an Integer, 
      * sends a {@link ActionType#LEAVE_WAITLIST} request with the Integer code to the server.
      * It includes error handling for non-numeric inputs.
-     * </p>
      *
      * @param event The event triggered by clicking the confirm button.
      */
@@ -143,9 +137,7 @@ public class ExitWaitlistController implements Initializable {
     
     /**
      * Displays an information alert indicating success.
-     * <p>
      * This is called when the server successfully removes the user from the waiting list.
-     * </p>
      */
     private void showSuccessAlert() {
         Alert alert = new Alert(AlertType.INFORMATION);

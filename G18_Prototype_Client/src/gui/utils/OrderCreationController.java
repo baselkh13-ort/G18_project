@@ -38,23 +38,19 @@ import javafx.util.Callback;
 
 /**
  * Controller for the Order Creation Screen.
- * <p>
+ *
  * This class implements the Client-Side logic for booking a table.
  * It adheres to the Client-Server architecture by requesting data (Opening Hours, Availability)
  * from the server and rendering the UI based on the response.
- * </p>
- * <p>
+ *
  * Key Features:
- * <ul>
- * <li><b>Visual Feedback:</b> Closed days are rendered in RED in the DatePicker.</li>
- * <li><b>Availability Display:</b> All operating hours are shown, but fully booked slots are disabled (grayed out).</li>
- * <li><b>Alternative Suggestions:</b> If a user tries to book a full slot, the server suggests alternatives.</li>
- * </ul>
- * </p>
+ * - Visual Feedback: Closed days are rendered in RED in the DatePicker.
+ * - Availability Display: All operating hours are shown, but fully booked slots are disabled (grayed out).
+ * - Alternative Suggestions: If a user tries to book a full slot, the server suggests alternatives.
  */
 public class OrderCreationController implements Initializable {
 
-    // --- FXML Components ---
+    //FXML Components
     @FXML private DatePicker dpDate;
     @FXML private ComboBox<String> cmbTime;
     @FXML private TextField txtGuests;
@@ -138,7 +134,7 @@ public class OrderCreationController implements Initializable {
             }
         });
 
-        // --- 5. COMBO BOX CONFIGURATION ---
+        //5. COMBO BOX CONFIGURATION
         // Sets a custom CellFactory to gray out fully booked time slots.
         cmbTime.setCellFactory(lv -> new ListCell<String>() {
             @Override
@@ -200,10 +196,8 @@ public class OrderCreationController implements Initializable {
 
     /**
      * Checks if the restaurant is closed on a specific date.
-     * <p>
      * Logic includes converting Java's DayOfWeek (Mon=1) to the Database's convention (usually Sun=1),
      * ensuring that days like Saturday are correctly identified as closed.
-     * </p>
      *
      * @param date The date to check.
      * @return true if the restaurant is closed, false otherwise.
@@ -236,12 +230,10 @@ public class OrderCreationController implements Initializable {
 
     /**
      * Loads the time slots for the selected day.
-     * <p>
      * This method:
      * 1. Generates ALL operating hours locally (e.g., 12:00 to 24:00).
      * 2. Queries the server for AVAILABLE hours.
      * 3. Populates the ComboBox with ALL hours. The CellFactory will disable the unavailable ones.
-     * </p>
      */
     private void loadFullDayWithAvailabilityCheck() {
         LocalDate localDate = dpDate.getValue();
@@ -338,10 +330,8 @@ public class OrderCreationController implements Initializable {
 
     /**
      * Handles the Submit button click to create a new order.
-     * <p>
      * Sends the order request to the server. If the slot was taken during the process (Race Condition),
      * handles the "Order Alternatives" response by showing a warning and suggesting new times.
-     * </p>
      *
      * @param event The ActionEvent triggered by the button.
      */

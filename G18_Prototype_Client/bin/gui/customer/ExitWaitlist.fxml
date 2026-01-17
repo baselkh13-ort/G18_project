@@ -22,7 +22,7 @@
                 wrapText="true" textAlignment="CENTER"/>
          
          <VBox fx:id="vboxGuest" alignment="CENTER" spacing="5.0">
-            <TextField fx:id="txtIdentification" promptText="Phone Number / Email" styleClass="text-field" />
+            <TextField fx:id="txtIdentification" promptText="Confirmation Code" styleClass="text-field" />
          </VBox>
 
          <Label fx:id="lblError" styleClass="error-label" text="" wrapText="true"/>

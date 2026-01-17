@@ -22,19 +22,16 @@ import javafx.stage.Stage;
 
 /**
  * Main Controller for the Terminal Interface.
- * <p>
- * <b>Functionality:</b>
- * <ul>
- * <li>Manages the main navigation menu.</li>
- * <li>Handles User Identification via Card Reader Simulation.</li>
- * <li>Implements a "Session" model: Guests see the login area, Identified
- * Members see their name and a Logout button.</li>
- * </ul>
- * </p>
+ *
+ * Functionality:
+ * - Manages the main navigation menu.
+ * - Handles User Identification via Card Reader Simulation.
+ * - Implements a "Session" model: Guests see the login area, Identified
+ * Members see their name and a Logout button.
  */
 public class TerminalMainController implements Initializable {
 
-	// Simulation Area (Visible for Guests)
+	// Simulation (Visible for Guests)
 	@FXML
 	private VBox vboxSimulationArea;
 	@FXML
@@ -42,7 +39,7 @@ public class TerminalMainController implements Initializable {
 	@FXML
 	private Label lblError; // Separate label for login errors
 
-	// Member Info Area (Visible for Logged-in Members)
+	// Member Info (Visible for Logged-in Members)
 	@FXML
 	private VBox vboxMemberInfo;
 	@FXML
@@ -56,15 +53,10 @@ public class TerminalMainController implements Initializable {
 
 	/**
 	 * Updates the UI visibility based on whether a user is logged in.
-	 * <p>
-	 * <b>Logic:</b>
-	 * <ul>
-	 * <li><b>Guest (ChatClient.terminalMember == null):</b> Shows the "Simulate
-	 * Scan" area. Hides the Logout button.</li>
-	 * <li><b>Member (ChatClient.terminalMember != null):</b> Hides the scan area.
-	 * Shows "Welcome [Name]" and Logout button.</li>
-	 * </ul>
-	 * </p>
+	 *
+	 * Logic:
+	 * - Guest (ChatClient.terminalMember == null): Shows the "Simulate Scan" area. Hides the Logout button.
+	 * - Member (ChatClient.terminalMember != null): Hides the scan area. Shows "Welcome [Name]" and Logout button.
 	 */
 	private void refreshScreenState() {
 		if (ChatClient.terminalMember == null) {
@@ -91,11 +83,9 @@ public class TerminalMainController implements Initializable {
 
 	/**
 	 * Simulation of swiping a magnetic card or scanning a QR code.
-	 * <p>
-	 * <b>Process:</b> 1. Reads the Member Code from the input field. 2. Sends an
+	 * Process: 1. Reads the Member Code from the input field. 2. Sends an
 	 * identification request to the server. 3. If successful, updates the static
 	 * {@code ChatClient.terminalMember} and refreshes the UI.
-	 * </p>
 	 * 
 	 * @param event The button click event.
 	 */
@@ -133,10 +123,8 @@ public class TerminalMainController implements Initializable {
 
 	/**
 	 * Logs out the current member.
-	 * <p>
-	 * <b>Requirement #11 Implementation:</b> Allows switching users without closing
+	 * Requirement #11 Implementation:Allows switching users without closing
 	 * the application.
-	 * </p>
 	 * 
 	 * @param event The button click event.
 	 */
@@ -188,10 +176,8 @@ public class TerminalMainController implements Initializable {
 
 	/**
 	 * Helper method to open modal popup windows.
-	 * <p>
 	 * Keeps the main terminal window open in the background but blocks interaction
 	 * until the popup is closed.
-	 * </p>
 	 * 
 	 * @param fxmlName The filename of the FXML to load.
 	 * @param title    The title of the popup window.

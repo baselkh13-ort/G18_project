@@ -20,16 +20,12 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
-import logic.ScreenMode;
 
 /**
- * UserMenuController controls the main navigation menu for the Bistro
- * application.
- * <p>
+ * UserMenuController controls the main navigation menu for the Bistro application.
  * This controller handles the dashboard presented to the member after a
  * successful login (or guest entry). It adjusts the visibility of buttons based
  * on the user's role (Member vs. Guest).
- * </p>
  */
 public class UserMenuController extends AbstractBistroController implements Initializable {
 
@@ -60,11 +56,9 @@ public class UserMenuController extends AbstractBistroController implements Init
 	/**
 	 * Initializes the controller class. This method is automatically called after
 	 * the FXML file has been loaded.
-	 * <p>
 	 * It checks the currently logged-in user's role via {@link ChatClient#user}. If
 	 * the user is a Guest (or null), it hides member-specific features (Update
 	 * Order, Digital Card).
-	 * </p>
 	 *
 	 * @param location  The location used to resolve relative paths for the root
 	 *                  object, or null if unknown.
@@ -128,7 +122,6 @@ public class UserMenuController extends AbstractBistroController implements Init
 	@FXML
 	public void clickNewOrder(ActionEvent event) throws Exception {
 		System.out.println("Selected: New Order");
-		ClientUI.currentMode = ScreenMode.CREATE;
 
 		// Hide current window
 		((Node) event.getSource()).getScene().getWindow().hide();
@@ -159,7 +152,6 @@ public class UserMenuController extends AbstractBistroController implements Init
 	@FXML
 	public void clickCancelOrder(ActionEvent event) throws Exception {
 		System.out.println("Selected: Cancel Order");
-		ClientUI.currentMode = ScreenMode.CANCEL;
 		// Hide current window
 		((Node) event.getSource()).getScene().getWindow().hide();
 		Stage primaryStage = new Stage();
@@ -174,19 +166,16 @@ public class UserMenuController extends AbstractBistroController implements Init
 
 	/**
 	 * Handles the "Exit Waitlist" button click event.
-	 * <p>
+	 *
 	 * This method facilitates the navigation from the main Customer Menu to the
 	 * "Exit Waitlist" screen. It performs the following actions:
-	 * <ul>
-	 * <li>Hides the current window (Customer Menu).</li>
-	 * <li>Loads the FXML layout for the Exit Waitlist screen.</li>
-	 * <li>Applies the corresponding CSS stylesheet.</li>
-	 * <li>Displays the new screen in a new Stage.</li>
-	 * </ul>
-	 * </p>
+	 * - Hides the current window (Customer Menu).
+	 * - Loads the FXML layout for the Exit Waitlist screen.
+	 * - Applies the corresponding CSS stylesheet.
+	 * - Displays the new screen in a new Stage.
 	 *
 	 * @param event The ActionEvent triggered by clicking the button; used to
-	 *              retrieve the current window.
+	 * retrieve the current window.
 	 */
 	@FXML
 	public void clickExitWaitList(ActionEvent event) {
@@ -218,10 +207,8 @@ public class UserMenuController extends AbstractBistroController implements Init
 
 	/**
 	 * Handles the "Pay Bill" button click event.
-	 * <p>
 	 * Opens the Payment screen where customers (both Members and Guests) can pay
 	 * their bill remotely using their order confirmation code.
-	 * </p>
 	 *
 	 * @param event The ActionEvent triggered by the button.
 	 */
@@ -255,11 +242,8 @@ public class UserMenuController extends AbstractBistroController implements Init
 		System.out.println("Selected: Order History");
 		try {
 			if (ChatClient.user != null) {
-				BistroMessage msg = new BistroMessage(ActionType.GET_USER_HISTORY, ChatClient.user.getUserId()); // או
-																													// getId()
-																													// תלוי
-																													// במחלקה
-																													// שלך
+				BistroMessage msg = new BistroMessage(ActionType.GET_USER_HISTORY, ChatClient.user.getUserId());
+																																																			// שלך
 				ClientUI.chat.accept(msg);
 			}
 

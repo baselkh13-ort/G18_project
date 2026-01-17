@@ -20,16 +20,13 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
-import logic.ScreenMode;
 
 /**
  * Controller class for the main menu used by Staff members (Workers and
  * Managers).
- * <p>
  * This controller handles navigation to different functional areas of the
  * system, such as registering clients, viewing orders, and managing reports
  * (Manager only).
- * </p>
  */
 public class WorkerMenuController extends AbstractBistroController implements Initializable {
 
@@ -74,10 +71,8 @@ public class WorkerMenuController extends AbstractBistroController implements In
 
 	/**
 	 * Initializes the controller class.
-	 * <p>
 	 * Sets the welcome message based on the logged-in user and toggles visibility
 	 * of Manager-only buttons based on the user's role.
-	 * </p>
 	 *
 	 * @param location  The location used to resolve relative paths for the root
 	 *                  object.
@@ -159,10 +154,8 @@ public class WorkerMenuController extends AbstractBistroController implements In
 
 	/**
 	 * Navigates to the "View All Orders" screen.
-	 * <p>
 	 * Sends a request to the server to fetch all orders (GET_ALL_ORDERS) and sets
 	 * the application mode to VIEW (Read-Only).
-	 * </p>
 	 * * @param event The event triggered by clicking the View All button.
 	 */
 	@FXML
@@ -171,7 +164,6 @@ public class WorkerMenuController extends AbstractBistroController implements In
 
 		try {
 			// 1. Logic Setup
-			ClientUI.currentMode = ScreenMode.VIEW;
 			BistroMessage msg = new BistroMessage(ActionType.GET_ALL_ORDERS, null);
 			ClientUI.chat.accept(msg);
 
@@ -197,9 +189,7 @@ public class WorkerMenuController extends AbstractBistroController implements In
 
 	/**
 	 * Opens the Waiting List Management screen.
-	 * <p>
 	 * Loads the 'ShowWaitingList' FXML and displays it in a new window.
-	 * </p>
 	 * * @param event The event triggered by clicking the Waiting List button.
 	 */
 	@FXML
@@ -231,9 +221,7 @@ public class WorkerMenuController extends AbstractBistroController implements In
 
 	/**
 	 * Opens the Member Management screen.
-	 * <p>
 	 * Fetches the list of all members from the server BEFORE opening the window.
-	 * </p>
 	 */
 	@FXML
 	void openMembersManagement(ActionEvent event) {
@@ -261,10 +249,8 @@ public class WorkerMenuController extends AbstractBistroController implements In
 
 	/**
 	 * Opens the Opening Hours Management screen.
-	 * <p>
 	 * This screen allows both Representatives and Managers to update: 1. Regular
 	 * weekly hours. 2. Specific dates (exceptions/holidays).
-	 * </p>
 	 * 
 	 * @param event The event triggered by clicking the "Manage Opening Hours"
 	 *              button.
@@ -291,9 +277,7 @@ public class WorkerMenuController extends AbstractBistroController implements In
 
 	/**
 	 * Fetches all active orders and opens the Active Orders management screen.
-	 * <p>
 	 * Sends a GET_ALL_ACTIVE_ORDERS request to the server using Eager Loading.
-	 * </p>
 	 * 
 	 * @param event The event triggered by the "Active Orders" button.
 	 */
@@ -325,9 +309,7 @@ public class WorkerMenuController extends AbstractBistroController implements In
 	/**
 	 * Fetches the list of currently seated diners and opens the Active Diners
 	 * screen.
-	 * <p>
 	 * Sends a GET_ACTIVE_DINERS request to the server using Eager Loading.
-	 * </p>
 	 * 
 	 * @param event The event triggered by the "Active Diners" button.
 	 */
@@ -358,10 +340,8 @@ public class WorkerMenuController extends AbstractBistroController implements In
 	
 	/**
      * Opens the Table Management screen.
-     * <p>
      * Fetches the current list of tables from the server using Eager Loading
      * before displaying the management interface.
-     * </p>
      * @param event The event triggered by the "Manage Tables" button.
      */
     @FXML
@@ -391,11 +371,9 @@ public class WorkerMenuController extends AbstractBistroController implements In
     
     /**
      * Opens the Manager's Monthly Reports screen.
-     * <p>
      * This action is restricted to users with the {@code MANAGER} role only.
      * The screen displays automated statistical reports regarding restaurant performance
      * (arrival times) and subscription data (orders trend).
-     * </p>
      *
      * @param event The event triggered by clicking the "View Reports" button.
      */

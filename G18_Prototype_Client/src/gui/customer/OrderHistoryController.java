@@ -23,11 +23,9 @@ import javafx.stage.Stage;
 
 /**
  * Controller for the "Orders and Visits History" screen.
- * <p>
  * This screen displays a table of all past orders.
  * It includes a calculated column to distinguish actual "Visits" (Completed orders)
  * from other order types.
- * </p>
  */
 public class OrderHistoryController implements Initializable {
 
@@ -72,7 +70,7 @@ public class OrderHistoryController implements Initializable {
         //Setup Table Columns
         
         // Standard columns mapping directly to Order properties
-        colOrderNumber.setCellValueFactory(new PropertyValueFactory<>("orderNumber")); // Ensure field name matches 'Order' class (usually orderId not userId for order num)
+        colOrderNumber.setCellValueFactory(new PropertyValueFactory<>("orderNumber"));
         colDate.setCellValueFactory(new PropertyValueFactory<>("orderDate"));
         colGuests.setCellValueFactory(new PropertyValueFactory<>("numberOfGuests"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status")); 
@@ -92,7 +90,7 @@ public class OrderHistoryController implements Initializable {
             }
         });
 
-        // --- Load Data ---
+        // Load Data
         if (ChatClient.listOfOrders != null) {
             ObservableList<Order> data = FXCollections.observableArrayList(ChatClient.listOfOrders);
             tblHistory.setItems(data);
