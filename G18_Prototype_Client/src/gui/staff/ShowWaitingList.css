@@ -1,0 +1,53 @@
+/* Main background styling */
+.main-panel {
+    -fx-background-color: #f4f4f4;
+}
+
+/* Header Label styling */
+.header-label {
+    -fx-font-family: "Arial";
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);
+}
+
+/* Table View styling */
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 5;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 1);
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #2a5058;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+/* Green Action Button */
+.action-btn {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+}
+
+.action-btn:hover {
+    -fx-background-color: #45a049;
+}
+
+/* Red Back Button */
+.back-btn {
+    -fx-background-color: #f44336;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+}
+
+.back-btn:hover {
+    -fx-background-color: #d32f2f;
+}

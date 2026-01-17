@@ -2,25 +2,44 @@ package common;
 
 import java.io.Serializable;
 import java.sql.Time;
-import java.util.Date;
+import java.time.LocalTime;
+import java.sql.Date;
 
 /**
- * Represents the restaurant's operating hours logic.
- * Can define regular weekly hours or specific exception dates (holidays, etc.).
+ * Represents the restaurant's operating hours entity.
+ * <p>
+ * This class supports two types of schedules:
+ * <ul>
+ * <li><b>Regular Weekly Hours:</b> Recurring hours based on the day of the week (e.g., Every Sunday).</li>
+ * <li><b>Specific Date Exceptions:</b> Special hours or closures for specific dates (e.g., Holidays).</li>
+ * </ul>
+ * </p>
+ * Implements {@link Serializable} to allow transfer between Client and Server.
  */
 public class OpeningHour implements Serializable {
     
     private static final long serialVersionUID = 1L;
 
+    /** Unique identifier for the database record. */
     private int id;
-    private int dayOfWeek; // 1=Sunday, 7=Saturday
-    private Date specificDate; // Null if it's a regular weekly schedule
+    
+    /** The day of the week (1 = Sunday, 7 = Saturday). 0 if irrelevant (specific date). */
+    private int dayOfWeek; 
+    
+    /** The specific date for exceptions. Null if this represents a regular weekly schedule. */
+    private Date specificDate; 
+    
+    /** The opening time. Null if the restaurant is closed all day. */
     private Time openTime;
+    
+    /** The closing time. Null if the restaurant is closed all day. */
     private Time closeTime;
-    private boolean isClosed; // True if the restaurant is closed on this day
+    
+    /** Flag indicating if the restaurant is closed on this specific day/schedule. */
+    private boolean isClosed; 
 
     /**
-     * Full constructor for database retrieval.
+     * Full constructor used for retrieving data from the database.
      */
     public OpeningHour(int id, int dayOfWeek, Date specificDate, Time openTime, Time closeTime, boolean isClosed) {
         this.id = id;
@@ -30,6 +49,61 @@ public class OpeningHour implements Serializable {
         this.closeTime = closeTime;
         this.isClosed = isClosed;
     }
+
+    /**
+     * Constructor for updating regular weekly hours (OPEN).
+     * Used for: "Every Sunday open 08:00-12:00".
+     */
+    public OpeningHour(int dayOfWeek, LocalTime start, LocalTime end) {
+        this.dayOfWeek = dayOfWeek;
+        this.openTime = Time.valueOf(start);  
+        this.closeTime = Time.valueOf(end);     
+        this.specificDate = null;
+        this.isClosed = false;
+    }
+
+    // --- NEW CONSTRUCTOR ADDED HERE ---
+    /**
+     * Constructor for updating regular weekly hours (CLOSED).
+     * Used for: "Every Saturday CLOSED".
+     * * @param dayOfWeek The day index (1-7).
+     * @param isClosed Should be true.
+     */
+    public OpeningHour(int dayOfWeek, boolean isClosed) {
+        this.dayOfWeek = dayOfWeek;
+        this.isClosed = isClosed;
+        // Reset other fields
+        this.openTime = null;
+        this.closeTime = null;
+        this.specificDate = null;
+    }
+    // ----------------------------------
+
+    /**
+     * Constructor for setting a specific date as OPEN with special hours.
+     * Used for: "15/05/2025 open 10:00-14:00".
+     */
+    public OpeningHour(java.sql.Date specificDate, LocalTime start, LocalTime end) {
+        this.specificDate = specificDate;
+        this.openTime = Time.valueOf(start);
+        this.closeTime = Time.valueOf(end);
+        this.isClosed = false;
+        this.dayOfWeek = 0; 
+    }
+    
+    /**
+     * Constructor for setting a specific date as CLOSED.
+     * Used for: "15/05/2025 CLOSED".
+     */
+    public OpeningHour(java.sql.Date specificDate, boolean isClosed) {
+        this.specificDate = specificDate;
+        this.isClosed = isClosed;
+        this.openTime = null;
+        this.closeTime = null;
+        this.dayOfWeek = 0;
+    }
+
+    //Getters and Setters
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -48,4 +122,10 @@ public class OpeningHour implements Serializable {
 
     public boolean isClosed() { return isClosed; }
     public void setClosed(boolean isClosed) { this.isClosed = isClosed; }
+    
+    @Override
+    public String toString() {
+        if (isClosed) return "Closed";
+        return openTime + " - " + closeTime;
+    }
 }

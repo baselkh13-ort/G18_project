@@ -47,8 +47,8 @@
 					styleClass="card-button" text="My Member Card" />
 
 				<Button fx:id="btnExit" mnemonicParsing="false"
-					onAction="#getExitBtn" prefHeight="50.0" prefWidth="200.0"
-					styleClass="exit-button" text="Exit" />
+					onAction="#clickLogout" prefHeight="40.0" prefWidth="200.0"
+					styleClass="exit-button" text="logOut" />
 			</children>
 		</VBox>
 	</children>

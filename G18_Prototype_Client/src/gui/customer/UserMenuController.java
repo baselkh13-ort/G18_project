@@ -9,6 +9,7 @@ import common.ActionType;
 import common.BistroMessage;
 import common.Role;
 import common.User;
+import gui.utils.AbstractBistroController;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -30,7 +31,7 @@ import logic.ScreenMode;
  * on the user's role (Member vs. Guest).
  * </p>
  */
-public class UserMenuController implements Initializable {
+public class UserMenuController extends AbstractBistroController implements Initializable {
 
 	/** Label to display a welcome message with the user's name or "Guest". */
 	@FXML
@@ -55,7 +56,7 @@ public class UserMenuController implements Initializable {
 	private Button btnPayBill;
 	@FXML
 	private Button btnExit;
-	
+
 	/**
 	 * Initializes the controller class. This method is automatically called after
 	 * the FXML file has been loaded.
@@ -82,11 +83,11 @@ public class UserMenuController implements Initializable {
 			lblWelcome.setText("Welcome, Guest");
 			// Hide member-exclusive buttons
 			btnHistory.setVisible(false);
-		    btnHistory.setManaged(false);
-		    
+			btnHistory.setManaged(false);
+
 			btnDigitalCard.setVisible(false);
 			btnDigitalCard.setManaged(false);
-			
+
 			btnEditProfile.setVisible(false);
 			btnEditProfile.setManaged(false);
 		}
@@ -248,44 +249,56 @@ public class UserMenuController implements Initializable {
 			System.out.println("Error loading Payment screen");
 		}
 	}
-	
+
 	@FXML
 	public void clickHistory(ActionEvent event) {
-	    try {
-	        ((Node) event.getSource()).getScene().getWindow().hide();
-	        Stage primaryStage = new Stage();
-	        Parent root = FXMLLoader.load(getClass().getResource("/gui/customer/OrderHistory.fxml"));
-	        Scene scene = new Scene(root);
-	        scene.getStylesheets().add(getClass().getResource("/gui/customer/OrderHistory.css").toExternalForm());
-	        primaryStage.setTitle("Bistro - Order History");
-	        primaryStage.setScene(scene);
-	        primaryStage.show();
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	    }
+		System.out.println("Selected: Order History");
+		try {
+			if (ChatClient.user != null) {
+				BistroMessage msg = new BistroMessage(ActionType.GET_USER_HISTORY, ChatClient.user.getUserId()); // או
+																													// getId()
+																													// תלוי
+																													// במחלקה
+																													// שלך
+				ClientUI.chat.accept(msg);
+			}
+
+			((Node) event.getSource()).getScene().getWindow().hide();
+			Stage primaryStage = new Stage();
+			Parent root = FXMLLoader.load(getClass().getResource("/gui/customer/OrderHistory.fxml"));
+			Scene scene = new Scene(root);
+			scene.getStylesheets().add(getClass().getResource("/gui/customer/OrderHistory.css").toExternalForm());
+			primaryStage.setTitle("Bistro - Order History");
+			primaryStage.setScene(scene);
+			primaryStage.show();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Error loading Order History");
+		}
 	}
-	
+
 	@FXML
 	public void clickEditProfile(ActionEvent event) {
 		try {
-            //Load the FXML file
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/gui/customer/EditDetails.fxml"));
-            Parent root = loader.load();
+			// Load the FXML file
+			FXMLLoader loader = new FXMLLoader(getClass().getResource("/gui/customer/EditDetails.fxml"));
+			Parent root = loader.load();
 
-            // Create the Stage (Window)
-            Stage stage = new Stage();
-            stage.setTitle("Update Personal Details");
-            stage.setScene(new Scene(root));
-            
-            //Show the window
-            stage.show(); 
-            
-        } catch (Exception e) {
-            System.out.println("Error loading EditProfile screen");
-            e.printStackTrace();
-        }
+			// Create the Stage (Window)
+			Stage stage = new Stage();
+			stage.setTitle("Update Personal Details");
+			stage.setScene(new Scene(root));
+
+			// Show the window
+			stage.show();
+
+		} catch (Exception e) {
+			System.out.println("Error loading EditProfile screen");
+			e.printStackTrace();
+		}
 	}
-	
+
 	/**
 	 * Opens the Digital Member Card in a new modal window.
 	 *
@@ -311,28 +324,12 @@ public class UserMenuController implements Initializable {
 	}
 
 	/**
-	 * Handles the "Exit" action.
-	 * <p>
-	 * Attempts to send a {@link ActionType#CLIENT_QUIT} message to the server to
-	 * gracefully close the connection, then terminates the client application.
-	 * </p>
-	 *
-	 * @param event The ActionEvent triggered by clicking the button.
+	 * Triggered by the "Logout" button in FXML. Uses the REUSED logic from
+	 * AbstractBistroController.
 	 */
 	@FXML
-	public void getExitBtn(ActionEvent event) {
-		System.out.println("Exit requested");
-		try {
-			// Attempt to gracefully disconnect from the server
-			if (ClientUI.chat != null && ClientUI.chat.client != null && ClientUI.chat.client.isConnected()) {
-				BistroMessage msg = new BistroMessage(ActionType.CLIENT_QUIT, null);
-				ClientUI.chat.client.sendToServer(msg);
-			}
-		} catch (Exception e) {
-		} finally {
-			System.out.println("Closing application now.");
-			System.exit(0);
-		}
+	public void clickLogout(ActionEvent event) {
+		// call to the function in the AbstractBistroController class
+		super.logout(event);
 	}
-
 }

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="500.0" prefWidth="700.0" 
+            xmlns="http://javafx.com/javafx/8.0.171" 
+            xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="gui.staff.ActiveDinersController"
+            stylesheets="@ActiveOrders.css"> <children>
+      <Label layoutX="240.0" layoutY="25.0" text="Current Active Diners" textFill="#2c3e50">
+         <font>
+            <Font name="System Bold" size="24.0" />
+         </font>
+      </Label>
+
+      <TableView fx:id="tblActiveDiners" layoutX="30.0" layoutY="80.0" prefHeight="330.0" prefWidth="640.0">
+        <columns>
+          <TableColumn fx:id="colOrderNum" prefWidth="100.0" text="Order #" />
+          <TableColumn fx:id="colName" prefWidth="200.0" text="Customer Name" />
+          <TableColumn fx:id="colTimeEntered" prefWidth="200.0" text="Entry Time" />
+          <TableColumn fx:id="colGuests" prefWidth="120.0" text="Diners Count" />
+        </columns>
+      </TableView>
+
+      <Button fx:id="btnRefresh" layoutX="30.0" layoutY="430.0" mnemonicParsing="false" onAction="#refreshData" prefWidth="100.0" styleClass="action-button" text="Refresh" />
+      <Button fx:id="btnClose" layoutX="570.0" layoutY="430.0" mnemonicParsing="false" onAction="#closeWindow" prefWidth="100.0" styleClass="close-button" text="Close" />
+   </children>
+</AnchorPane>

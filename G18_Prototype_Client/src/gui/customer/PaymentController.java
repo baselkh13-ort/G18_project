@@ -88,45 +88,66 @@ public class PaymentController implements Initializable {
 	}
 
 	/**
-	 * Step 1: Search for the order/bill by Confirmation Code.
-	 * <p>
-	 * Sends a request to the server to fetch the order details based on the code provided.
+     * Step 1: Search for the order/bill by Confirmation Code.
+     * <p>
+     * Sends a request to the server to fetch the order details based on the code provided.
+     * <b>Validation:</b> Payment is allowed ONLY if the order status is 'SEATED'.
      * </p>
      * @param event The ActionEvent triggered by clicking the search button.
      */
-	@FXML
-	public void clickSearchOrder(ActionEvent event) {
-		lblSearchError.setText("");
-		String codeStr = txtConfirmationCode.getText().trim();
-		if (codeStr.isEmpty()) {
-			lblSearchError.setText("Please enter a confirmation code.");
-			return;
-		}
+    @FXML
+    public void clickSearchOrder(ActionEvent event) {
+        lblSearchError.setText("");
+        String codeStr = txtConfirmationCode.getText().trim();
+        
+        if (codeStr.isEmpty()) {
+            lblSearchError.setText("Please enter a confirmation code.");
+            return;
+        }
 
-		try {
-			Integer confirmationCode = Integer.parseInt(codeStr);
+        try {
+            Integer confirmationCode = Integer.parseInt(codeStr);
 
             // Send request to server to get order details
             BistroMessage msg = new BistroMessage(ActionType.GET_ORDER_BY_CODE, confirmationCode);
             ClientUI.chat.accept(msg);
+
             // Check if order exists
             if (ChatClient.order == null) {
-                lblSearchError.setText("Order not found or already paid.");
+                lblSearchError.setText("Order not found.");
                 vboxBillDetails.setVisible(false);
                 vboxBillDetails.setManaged(false);
             } else {
                 this.currentOrder = ChatClient.order;
-                displayBillDetails();
+                
+                // Check Status
+                String status = currentOrder.getStatus();
+                
+                if ("SEATED".equals(status)) {
+                    // Valid status -> Proceed to show bill
+                    displayBillDetails();
+                } else {
+                    // Invalid status (e.g., WAITING, PAID, CANCELED)
+                    vboxBillDetails.setVisible(false);
+                    vboxBillDetails.setManaged(false);
+                    
+                    if ("COMPLETED".equals(status) || "PAID".equals(status)) {
+                        lblSearchError.setText("This order has already been paid.");
+                    } else if ("WAITING".equals(status)) {
+                        lblSearchError.setText("You are not seated yet. Cannot pay.");
+                    } else {
+                        lblSearchError.setText("Cannot pay. Order status: " + status);
+                    }
+                }
             }
-		
-		} catch (NumberFormatException e) {
+        
+        } catch (NumberFormatException e) {
             lblSearchError.setText("Code must be numbers only.");
         } catch (Exception e) {
             e.printStackTrace();
             lblSearchError.setText("Communication error.");
         }
     }
-	
 	/**
      * Step 2: Display bill details based on Server Calculation.
      * <p>

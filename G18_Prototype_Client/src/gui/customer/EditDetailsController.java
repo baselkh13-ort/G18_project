@@ -114,7 +114,17 @@ public class EditDetailsController implements Initializable {
             showAlert("Validation Error", "Phone number and Email cannot be empty.");
             return;
         }
+        // Validate Phone
+        if (newPhone.length() != 10 || !newPhone.startsWith("05") || !newPhone.matches("\\d+")) {
+            lblMessage.setText("Invalid Phone: Must be 10 digits and start with '05'.");
+            return;
+        }
 
+        // Validate Email
+        if (!newEmail.contains("@") || !newEmail.contains(".")) {
+            lblMessage.setText("Invalid Email format.");
+            return;
+        }
      // 2. Prepare Data for Update
         // We create a copy or update the existing user object to send to the server.
         // NOTE: Ensure your User class has a constructor or setters for this.
@@ -158,7 +168,6 @@ public class EditDetailsController implements Initializable {
     public void clickBack(ActionEvent event) {
         try {
             ((Node) event.getSource()).getScene().getWindow().hide();
-            // Optional: Re-open the main menu if needed
         } catch (Exception e) {
             e.printStackTrace();
         }

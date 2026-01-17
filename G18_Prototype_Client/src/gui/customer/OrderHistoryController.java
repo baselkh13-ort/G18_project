@@ -1,15 +1,13 @@
 package gui.customer;
 
 import java.net.URL;
-import java.util.ArrayList;
+import java.sql.Timestamp;
 import java.util.ResourceBundle;
 
 import client.ChatClient;
-import client.ClientUI;
-import common.ActionType;
-import common.BistroMessage;
 import common.Order;
 import common.User;
+import javafx.beans.property.SimpleStringProperty; // Import needed for the custom column
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -26,92 +24,95 @@ import javafx.stage.Stage;
 /**
  * Controller for the "Orders and Visits History" screen.
  * <p>
- * This screen is accessible ONLY to members. It displays a table of all past
- * orders and visits. A "Visit" is simply an Order with a status of COMPLETED or
- * PAID.
+ * This screen displays a table of all past orders.
+ * It includes a calculated column to distinguish actual "Visits" (Completed orders)
+ * from other order types.
  * </p>
  */
 public class OrderHistoryController implements Initializable {
 
-	@FXML
-	private Label lblTitle;
+    @FXML
+    private Label lblTitle;
 
-	// TableView Components
-	@FXML
-	private TableView<Order> tblHistory;
+    //TableView Components
+    @FXML
+    private TableView<Order> tblHistory;
 
-	@FXML
-	private TableColumn<Order, Integer> colOrderNumber; // Order ID / Code
-	@FXML
-	private TableColumn<Order, String> colDate; // Date
-	@FXML
-	private TableColumn<Order, String> colTime; // Time
-	@FXML
-	private TableColumn<Order, Integer> colGuests; // Num of Diners
-	@FXML
-	private TableColumn<Order, String> colStatus; // Status (The key to distinguish visits)
-	@FXML
-	private TableColumn<Order, Double> colPrice; // Total Price
-
-	@FXML
-	private Button btnBack;
-
-	/**
-	 * Initializes the controller class. Sets up the table columns and fetches the
-	 * data from the server.
-	 */
-	@Override
-	public void initialize(URL location, ResourceBundle resources) {
-		User user = ChatClient.user;
-		if (user != null) {
-			lblTitle.setText("History for " + user.getFirstName());
-		}
-		// Setup Table Columns (Mapping fields from Order class)
-		colOrderNumber.setCellValueFactory(new PropertyValueFactory<>("userId")); 
-		colDate.setCellValueFactory(new PropertyValueFactory<>("orderDate"));
-		colTime.setCellValueFactory(new PropertyValueFactory<>("orderTime"));
-		colGuests.setCellValueFactory(new PropertyValueFactory<>("numberOfGuests"));
-		colStatus.setCellValueFactory(new PropertyValueFactory<>("status")); // e.g., COMPLETED, CANCELED
-		colPrice.setCellValueFactory(new PropertyValueFactory<>("totalPrice"));
-
-		// 2. Load Data
-		loadOrderHistory();
-	}
-
-	/**
-     * Fetches the order history for the current user from the server.
+    @FXML
+    private TableColumn<Order, Integer> colOrderNumber; 
+    @FXML
+    private TableColumn<Order, Timestamp> colDate; 
+    @FXML
+    private TableColumn<Order, Integer> colGuests; 
+    @FXML
+    private TableColumn<Order, String> colStatus; 
+    @FXML
+    private TableColumn<Order, Double> colPrice; 
+    
+    /** * New Column: Indicates if this order counts as a physical "Visit".
+     * Logic: If status is COMPLETED, then Visit = Yes.
      */
-    private void loadOrderHistory() {
-        try {
-            // Request user's orders (Server should handle the query by memberCode)
-            BistroMessage msg = new BistroMessage(ActionType.GET_USER_HISTORY, ChatClient.user.getUserId());
-            ClientUI.chat.accept(msg);
+    @FXML
+    private TableColumn<Order, String> colIsVisit; 
 
-            // Assume the server returns an ArrayList<Order> in ChatClient.orderList
-            ArrayList<Order> orders = ChatClient.listOfOrders; 
+    @FXML
+    private Button btnBack;
+
+    /**
+     * Initializes the controller class.
+     * Sets up the table columns and generates the "Is Visit" data on the fly.
+     */
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        User user = ChatClient.user;
+        if (user != null) {
+            lblTitle.setText("History for " + user.getFirstName());
+        }
+
+        //Setup Table Columns
+        
+        // Standard columns mapping directly to Order properties
+        colOrderNumber.setCellValueFactory(new PropertyValueFactory<>("orderNumber")); // Ensure field name matches 'Order' class (usually orderId not userId for order num)
+        colDate.setCellValueFactory(new PropertyValueFactory<>("orderDate"));
+        colGuests.setCellValueFactory(new PropertyValueFactory<>("numberOfGuests"));
+        colStatus.setCellValueFactory(new PropertyValueFactory<>("status")); 
+        colPrice.setCellValueFactory(new PropertyValueFactory<>("totalPrice"));
+
+        //Custom Logic for "Visited?" Column 
+        // This creates a value based on the Status, without changing the Order class.
+        colIsVisit.setCellValueFactory(cellData -> {
+            Order order = cellData.getValue();
+            String status = order.getStatus(); 
             
-            if (orders != null) {
-                ObservableList<Order> data = FXCollections.observableArrayList(orders);
-                tblHistory.setItems(data);
+            // Check if the status implies a completed visit
+            if (status != null && status.equals("COMPLETED")) {
+                return new SimpleStringProperty("Yes"); // It was a visit
+            } else {
+                return new SimpleStringProperty("No");  // Just an order (or canceled)
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Error fetching history");
+        });
+
+        // --- Load Data ---
+        if (ChatClient.listOfOrders != null) {
+            ObservableList<Order> data = FXCollections.observableArrayList(ChatClient.listOfOrders);
+            tblHistory.setItems(data);
+        } else {
+            System.out.println("No history found in memory.");
         }
     }
 
-	/**
-	 * Navigates back to the main User Menu.
-	 */
-	@FXML
-	public void clickBack(ActionEvent event) {
-		try {
-			((Node) event.getSource()).getScene().getWindow().hide();
-			Stage primaryStage = new Stage();
-			UserMenuController menu = new UserMenuController();
-			menu.start(primaryStage);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+    /**
+     * Navigates back to the main User Menu.
+     */
+    @FXML
+    public void clickBack(ActionEvent event) {
+        try {
+            ((Node) event.getSource()).getScene().getWindow().hide();
+            Stage primaryStage = new Stage();
+            UserMenuController menu = new UserMenuController();
+            menu.start(primaryStage);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

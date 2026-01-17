@@ -1,10 +1,13 @@
 package gui.utils;
 
 import java.net.URL;
-import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.ResourceBundle;
 
 import client.ChatClient;
+import client.ClientUI;
+import common.ActionType;
+import common.BistroMessage;
 import common.Order;
 import gui.staff.WorkerMenuController;
 import javafx.collections.FXCollections;
@@ -15,47 +18,113 @@ import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Stage;
 
+/**
+ * Controller class for displaying the list of orders.
+ * <p>
+ * This screen allows staff to view all orders and refresh the list 
+ * to see real-time updates from the database.
+ * </p>
+ */
 public class OrderListController implements Initializable {
 
-    // FXML Connections
-    @FXML private TableView<Order> tblOrders;
-    @FXML private TableColumn<Order, Integer> colOrderNum;
-    @FXML private TableColumn<Order, Date> colDate;
-    @FXML private TableColumn<Order, Integer> colGuests;
-    @FXML private TableColumn<Order, Integer> colConfirmationCode;
-    @FXML private TableColumn<Order, Integer> colSubscriber;
-    @FXML private TableColumn<Order, Date> colDateOfPlacingOrder;
+    // --- FXML Connections ---
+    @FXML
+    private TableView<Order> tblOrders;
+    @FXML
+    private TableColumn<Order, Integer> colOrderNum;
+    @FXML
+    private TableColumn<Order, Timestamp> colDate;
+    @FXML
+    private TableColumn<Order, Integer> colGuests;
+    @FXML
+    private TableColumn<Order, Integer> colConfirmationCode;
+    @FXML
+    private TableColumn<Order, Integer> colMember;
+    @FXML
+    private TableColumn<Order, Timestamp> colDateOfPlacingOrder;
+    @FXML
+    private TableColumn<Order, String> colName;
+    @FXML
+    private TableColumn<Order, String> colPhone;
+    @FXML
+    private TableColumn<Order, String> colEmail;
+    
+    @FXML
+    private Button btnRefresh; // Make sure to add this button in SceneBuilder
 
     /**
      * Initializes the controller class.
-     * This method is automatically called after the FXML file has been loaded.
+     * <p>
+     * Sets up the table columns and loads the initial data.
+     * </p>
      */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         
         // 1. Set up the columns
-        // The strings inside PropertyValueFactory MUST match the getter names in the Order class.
-        // Example: "orderNumber" looks for getOrderNumber()
         colOrderNum.setCellValueFactory(new PropertyValueFactory<>("orderNumber"));
+        colName.setCellValueFactory(new PropertyValueFactory<>("CustomerName"));
         colDate.setCellValueFactory(new PropertyValueFactory<>("orderDate"));
         colGuests.setCellValueFactory(new PropertyValueFactory<>("numberOfGuests"));
         colConfirmationCode.setCellValueFactory(new PropertyValueFactory<>("confirmationCode"));        
-        colSubscriber.setCellValueFactory(new PropertyValueFactory<>("subscriberID"));
+        colMember.setCellValueFactory(new PropertyValueFactory<>("memberId"));
         colDateOfPlacingOrder.setCellValueFactory(new PropertyValueFactory<>("dateOfPlacingOrder"));
-        
+        colPhone.setCellValueFactory(new PropertyValueFactory<>("phone"));
+        colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
     
         // 2. Load data into the table
-        // We check if the list is not null to avoid NullPointerException
-        if (ChatClient.listOfOrders != null) {
+        loadTableData();
+    }
+    
+    /**
+     * Helper method to populate the table with data from ChatClient.
+     * <p>
+     * This is separated so it can be reused by the Refresh button.
+     * </p>
+     */
+    private void loadTableData() {
+        tblOrders.getItems().clear(); // Clear existing items to avoid duplicates
+        
+        if (ChatClient.listOfOrders != null && !ChatClient.listOfOrders.isEmpty()) {
             ObservableList<Order> data = FXCollections.observableArrayList(ChatClient.listOfOrders);
             tblOrders.setItems(data);
+            tblOrders.refresh(); // Force UI refresh
         } else {
-            System.out.println("Warning: Order list is empty or null.");
+            System.out.println("Info: Order list is empty or null.");
+        }
+    }
+
+    /**
+     * Handles the "Refresh" button click.
+     * <p>
+     * Sends a request to the server to fetch the most up-to-date list of orders
+     * and then reloads the table.
+     * </p>
+     * @param event The ActionEvent triggered by the button.
+     */
+    @FXML
+    public void clickRefresh(ActionEvent event) {
+        try {
+            // 1. Send request to server to get fresh data
+            // NOTE: Change ActionType.GET_ALL_ORDERS to match your specific Enum for this list
+            BistroMessage msg = new BistroMessage(ActionType.GET_ALL_ORDERS, null); 
+            ClientUI.chat.accept(msg); 
+            
+            // 2. Reload the table with the new data from ChatClient
+            loadTableData();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Alert alert = new Alert(AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setContentText("Failed to refresh data from server.");
+            alert.show();
         }
     }
     

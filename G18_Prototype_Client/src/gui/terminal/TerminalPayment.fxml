@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox alignment="TOP_CENTER" prefHeight="500.0" prefWidth="400.0" spacing="15.0" style="-fx-padding: 20; -fx-background-color: white; -fx-border-color: #34495e; -fx-border-width: 5;" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="gui.terminal.TerminalPaymentController">
+   <children>
+      <Label text="Pay Bill &amp; Check-out" textFill="#2c3e50">
+         <font>
+            <Font name="System Bold" size="22.0" />
+         </font>
+      </Label>
+      <Separator prefWidth="200.0" />
+      
+      <Label fx:id="lblStatus" text="Enter Order Code or Select Order" textAlignment="CENTER" wrapText="true">
+         <font>
+            <Font size="14.0" />
+         </font>
+      </Label>
+
+      <VBox fx:id="vboxIdentification" alignment="CENTER" spacing="10.0">
+         <children>
+            <TextField fx:id="txtOrderCode" promptText="Enter Confirmation Code" style="-fx-font-size: 14;" />
+            
+            <ComboBox fx:id="cmbMyOrders" prefWidth="300.0" promptText="Select your active order..." visible="false" />
+            
+            <Button fx:id="btnSearch" mnemonicParsing="false" onAction="#searchOrder" style="-fx-background-color: #3498db; -fx-text-fill: white;" text="View Bill" />
+         </children>
+      </VBox>
+      
+      <Separator prefWidth="200.0" />
+
+      <VBox fx:id="vboxBillDetails" alignment="CENTER" spacing="10.0" style="-fx-background-color: #ecf0f1; -fx-padding: 15; -fx-background-radius: 10;">
+         <children>
+            <Label text="Bill Details" underline="true">
+               <font><Font name="System Bold" size="16.0" /></font>
+            </Label>
+            
+            <Label fx:id="lblOrderInfo" text="Table: -- | Diners: --" textFill="#7f8c8d" />
+            
+            <Label fx:id="lblTotalAmount" text="Subtotal: 0.00 NIS">
+               <font><Font size="14.0" /></font>
+            </Label>
+            
+            <Label fx:id="lblDiscount" text="Discount: 0.00" textFill="#27ae60">
+               <font><Font name="System Italic" size="14.0" /></font>
+            </Label>
+            
+            <Separator prefWidth="200.0" />
+            
+            <Label fx:id="lblFinalToPay" text="TOTAL: 0.00 NIS" textFill="#c0392b">
+               <font><Font name="System Bold" size="20.0" /></font>
+            </Label>
+            
+            <Button fx:id="btnPayNow" mnemonicParsing="false" onAction="#performPayment" prefHeight="40.0" prefWidth="200.0" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16;" text="PAY NOW" />
+         </children>
+      </VBox>
+      
+      <Button mnemonicParsing="false" onAction="#closeWindow" style="-fx-background-color: transparent; -fx-text-fill: gray; -fx-underline: true;" text="Close" />
+   </children>
+</VBox>

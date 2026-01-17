@@ -16,7 +16,7 @@ import java.sql.Timestamp;
  */
 public class Order implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
     // Database Identifiers 
     
@@ -46,8 +46,11 @@ public class Order implements Serializable {
     private String phone;
     private String email;
     
-    public Order() {
-    }
+    //For reports
+    private Timestamp actualArrivalTime;
+    private Timestamp actualLeaveTime;
+    
+    public Order() {}
 
     /**
 Full Constructor - Used primarily by the Server when retrieving existing data from the DB.
@@ -85,7 +88,7 @@ Full Constructor - Used primarily by the Server when retrieving existing data fr
     public Order(Timestamp orderDate, int numberOfGuests,String CustomerName, String phone, String email) {
     	this(0, orderDate, numberOfGuests, 0, 0, new Timestamp(System.currentTimeMillis()));
     	
-    		this.CustomerName = CustomerName;
+    	this.CustomerName = CustomerName;
         this.phone = phone;
         this.email = email;
         this.status = "PENDING"; // Default status for new orders    
@@ -188,6 +191,21 @@ Full Constructor - Used primarily by the Server when retrieving existing data fr
         this.email = email; 
     }
     
+    public void setActualArrivalTime(Timestamp actualArrivalTime) {
+        this.actualArrivalTime = actualArrivalTime;
+    }
+
+    public Timestamp getActualLeaveTime() {
+        return actualLeaveTime;
+    }
+
+    public void setActualLeaveTime(Timestamp actualLeaveTime) {
+        this.actualLeaveTime = actualLeaveTime;
+    }
+    
+    public Timestamp getActualArrivalTime() {
+		return actualArrivalTime;
+	}
 
     @Override
     public String toString() {

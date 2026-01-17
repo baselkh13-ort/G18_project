@@ -28,7 +28,7 @@
          </VBox>
 
          <VBox spacing="5.0">
-            <Label text="Select Time (30 min intervals):" styleClass="field-label"/>
+            <Label text="Select Time (availble in the resturant):" styleClass="field-label"/>
             <ComboBox fx:id="cmbTime" prefWidth="350.0" promptText="Select time"/>
          </VBox>
 
@@ -37,7 +37,7 @@
                styleClass="guest-container">
             <Label text="Guest Details" style="-fx-font-weight: bold; -fx-text-fill: #555;"/>
             
-            <TextField fx:id="txtName" promptText="First Name"/>
+            <TextField fx:id="txtName" promptText="Customer Name"/>
             <TextField fx:id="txtPhone" promptText="Phone Number (05...)"/>
             <TextField fx:id="txtEmail" promptText="Email Address"/>
          </VBox>

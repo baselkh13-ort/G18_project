@@ -154,25 +154,36 @@ public class LoginController {
 	}
 
 	/**
-	 * Handles the "Exit" button click event.
+	 * Handles the "Exit" action.
 	 * <p>
-	 * Sends a quit message to the server to ensure clean disconnection before
-	 * closing the application.
+	 * <ol>
+	 * <li>Sends a {@link ActionType#CLIENT_QUIT} message to update server logic.</li>
+	 * <li>Calls {@code client.quit()} to physically disconnect the socket connection.</li>
+	 * <li>Terminates the application using {@code System.exit(0)}.</li>
+	 * </ol>
 	 * </p>
 	 *
-	 * @param event The ActionEvent triggered by the button click.
+	 * @param event The ActionEvent triggered by clicking the button.
 	 */
 	@FXML
 	public void getExitBtn(ActionEvent event) {
+		System.out.println("Exit requested");
 		try {
-			if (ClientUI.chat != null) {
+			if (ClientUI.chat != null && ClientUI.chat.client != null && ClientUI.chat.client.isConnected()) {
+				
+				// 1. Logic: Notify server logic to update database/lists
 				BistroMessage msg = new BistroMessage(ActionType.CLIENT_QUIT, null);
 				ClientUI.chat.client.sendToServer(msg);
+
+				// 2. Network: Physically disconnect the socket
+				ClientUI.chat.client.quit(); 
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.out.println("Error during disconnect: " + e.getMessage());
+		} finally {
+			System.out.println("Closing application now.");
+			System.exit(0);
 		}
-		System.exit(0);
 	}
 
 	/**

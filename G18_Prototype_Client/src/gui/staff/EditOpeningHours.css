@@ -1,0 +1,83 @@
+/* Main Background */
+.root {
+    -fx-background-color: #f4f4f4; /* Light Grey */
+    -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+/* Main Header ("Manage Opening Hours") */
+.label {
+    -fx-text-fill: #2c3e50;
+}
+
+/* Inputs (ComboBox, DatePicker, TextField) */
+.combo-box, .date-picker, .text-field {
+    -fx-background-color: white;
+    -fx-border-color: #bdc3c7;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 2;
+}
+
+.combo-box:focused, .date-picker:focused, .text-field:focused {
+    -fx-border-color: #3498db; /* Highlight color when active */
+    -fx-effect: dropshadow(three-pass-box, rgba(52,152,219,0.3), 5, 0, 0, 0);
+}
+
+/* Section Separator */
+.separator *.line {
+    -fx-border-style: solid;
+    -fx-border-width: 1px;
+    -fx-border-color: #dcdcdc;
+    -fx-background-color: #dcdcdc;
+}
+
+/* --- Buttons Styling --- */
+
+/* Base Button Style */
+.button {
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-padding: 8 15 8 15;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 3, 0, 0, 1);
+}
+
+/* Update Buttons (Primary Action - Blue) */
+#btnUpdateRegular, #btnUpdateSpecific {
+    -fx-background-color: #2980b9;
+    -fx-text-fill: white;
+}
+
+#btnUpdateRegular:hover, #btnUpdateSpecific:hover {
+    -fx-background-color: #3498db;
+}
+
+#btnUpdateRegular:pressed, #btnUpdateSpecific:pressed {
+    -fx-background-color: #1f618d;
+}
+
+/* Close Button (Secondary Action - Grey/Red) */
+#btnClose {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+}
+
+#btnClose:hover {
+    -fx-background-color: #c0392b;
+}
+
+/* CheckBox Styling */
+.check-box {
+    -fx-text-fill: #2c3e50;
+    -fx-font-size: 13px;
+}
+
+.check-box .box {
+    -fx-background-color: white;
+    -fx-border-color: #bdc3c7;
+    -fx-border-radius: 3;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: #2c3e50;
+}
