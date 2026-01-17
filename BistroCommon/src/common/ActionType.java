@@ -28,6 +28,7 @@ public enum ActionType {
     
     GET_ALL_ORDERS,
     GET_ALL_TABLES,
+    GET_RELEVANT_ORDERS,
     ADD_TABLE,
     REMOVE_TABLE,           
     UPDATE_TABLE,

@@ -118,16 +118,11 @@ public class BistroServer extends AbstractServer {
      */
     @Override
     synchronized protected void clientDisconnected(ConnectionToClient client) {
-        String ip = "Unknown";
-        String host = "Unknown";
+        String ip = (String) client.getInfo("ip");
+        String host = (String) client.getInfo("host");
 
-        try {
-            if (client.getInetAddress() != null) {
-                ip = client.getInetAddress().getHostAddress();
-                host = client.getInetAddress().getHostName();
-            }
-        } catch (Exception e) {
-        }
+        if (ip == null) ip = "Unknown";
+        if (host == null) host = "Unknown";
 
         log("[Client Disconnected] IP: " + ip);
 
@@ -349,68 +344,54 @@ public class BistroServer extends AbstractServer {
                 //Waitlist Management (Walk-ins)
 
                 case ENTER_WAITLIST:
-                    // Adds a walk-in customer to the system (Seated or Waiting)
                     if (request.getData() instanceof Order) {
                         Order walkIn = (Order) request.getData();
-
-                        boolean hasEmail = walkIn.getEmail() != null && !walkIn.getEmail().isEmpty();
-                        boolean hasPhone = walkIn.getPhone() != null && !walkIn.getPhone().isEmpty();
                         
-                        if (!hasEmail && !hasPhone) {
-                            responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: Must provide Email or Phone");
+                        Timestamp serverNow = new Timestamp(System.currentTimeMillis());
+                        walkIn.setOrderDate(serverNow);
+
+                        if (!hoursRepo.isOpen(serverNow)) {
+                            responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: Restaurant is CLOSED.");
                             break;
                         }
+                        String cleanPhone = (walkIn.getPhone() != null) ? walkIn.getPhone().trim() : "";
+                        String cleanEmail = (walkIn.getEmail() != null) ? walkIn.getEmail().trim() : "";
 
                         if (orderRepo.hasActiveOrder(walkIn.getPhone(), walkIn.getEmail())) {
-                            responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: You are already in the system (Seated or Waiting).");
-                            log("[Waitlist] Blocked duplicate entry for " + walkIn.getCustomerName());
+                            responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: You are already in the system.");
                             break; 
-                        }
-
-                        if (walkIn.getOrderDate() == null) {
-                            walkIn.setOrderDate(new java.sql.Timestamp(System.currentTimeMillis()));
-                        }
-
-                        //  Check opening hours before allowing entry
-                        if (!hoursRepo.isOpen(walkIn.getOrderDate())) {
-                             responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: Restaurant is CLOSED at this time.");
-                             break;
                         }
 
                         int code;
                         do {
                             code = (int) (Math.random() * 9000) + 1000;
                         } while (orderRepo.isCodeExists(code));
-                        
                         walkIn.setConfirmationCode(code); 
 
                         if (orderRepo.isTableAvailableNow(walkIn.getNumberOfGuests())) {
-                            // Immediate Seating
                             walkIn.setStatus("SEATED"); 
-                            int id = orderRepo.createOrder(walkIn);
                             
-                            if (id != -1) {
-                                walkIn.setOrderNumber(id);
-                                int tableId = orderRepo.assignFreeTable(id, walkIn.getNumberOfGuests());
+                            int orderId = orderRepo.createOrder(walkIn); 
+                            if (orderId != -1) {
+                                walkIn.setOrderNumber(orderId);
+                                int tableId = orderRepo.assignFreeTable(orderId, walkIn.getNumberOfGuests());
                                 walkIn.setAssignedTableId(tableId);
-
-                                log("[Waitlist] Walk-in Seated immediately at Table " + tableId);
+                                
                                 responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, walkIn);
+                                log("[Waitlist] Walk-in SEATED immediately. Table: " + tableId);
                             } else {
-                                responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: DB Creation Failed");
+                                responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: DB Save Failed");
                             }
-
                         } else {
-                            // Add to Waitlist
-                            walkIn.setStatus("WAITING");
-                            int id = orderRepo.createOrder(walkIn);
+                            walkIn.setStatus("WAITING"); 
                             
-                            if (id != -1) {
-                                walkIn.setOrderNumber(id);
-                                log("[Waitlist] Added to queue. Code: " + code);
+                            int orderId = orderRepo.createOrder(walkIn); 
+                            if (orderId != -1) {
+                                walkIn.setOrderNumber(orderId);
                                 responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, walkIn);
+                                log("[Waitlist] No tables. Added to WAITING list. Code: " + code);
                             } else {
-                                responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: DB Creation Failed");
+                                responseMsg = new BistroMessage(ActionType.ENTER_WAITLIST, "Error: DB Save Failed");
                             }
                         }
                     }
@@ -531,6 +512,18 @@ public class BistroServer extends AbstractServer {
                     ArrayList<Order> allActiveOrders = orderRepo.getAllActiveOrdersForToday();
                     responseMsg = new BistroMessage(ActionType.GET_ALL_ACTIVE_ORDERS, allActiveOrders);
                     break;
+                    
+                case GET_RELEVANT_ORDERS:
+                    // Fetch active orders for a member specifically for TODAY
+                    if (request.getData() instanceof Integer) {
+                        int memberId = (Integer) request.getData();
+                        
+                        ArrayList<Order> relevantOrders = orderRepo.getRelevantOrdersForToday(memberId);
+                        
+                        responseMsg = new BistroMessage(ActionType.GET_RELEVANT_ORDERS, relevantOrders);
+                        log("[Server] Fetched " + relevantOrders.size() + " relevant orders for Member ID: " + memberId);
+                    }
+                    break;
 
                 case GET_AVAILABLE_TIMES:
                     // Calculates available time slots for a given date and group size
@@ -637,10 +630,10 @@ public class BistroServer extends AbstractServer {
                         boolean success = hoursRepo.updateOpeningHour(hourToUpdate);
 
                         if (success) {
-                            // 1. Check for conflicts
+                            //  Check for conflicts
                             ArrayList<Order> cancelledOrders = orderRepo.cancelConflictingOrders(hourToUpdate);
                             
-                            // 2. Build the detailed report
+                            //  Build the detailed report
                             StringBuilder clientResponse = new StringBuilder();
                             clientResponse.append("Hours updated successfully.\n");
 

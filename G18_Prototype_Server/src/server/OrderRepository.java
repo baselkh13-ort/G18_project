@@ -2,8 +2,8 @@ package server;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Map;       
-import java.util.HashMap;   
+import java.util.Map;        
+import java.util.HashMap;    
 import common.Order;
 
 /**
@@ -43,19 +43,15 @@ public class OrderRepository {
      * @return The generated Order ID (primary key) from the database, or -1 if the operation failed.
      */
     public int createOrder(Order o) {
-        String sql = "INSERT INTO bistro.`order` (order_date, number_of_guests, confirmation_code, subscriber_id, status, phone, email, customer_name) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO bistro.`order` (order_date, number_of_guests, confirmation_code, subscriber_id, status, phone, email, customer_name, entered_waitlist) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();
-            if (pConn == null) return -1;
-            
             Connection conn = pConn.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             
-            Timestamp ts = (o.getOrderDate() != null) ? new Timestamp(o.getOrderDate().getTime()) : new Timestamp(System.currentTimeMillis());
-            
-            ps.setTimestamp(1, ts);
+            ps.setTimestamp(1, o.getOrderDate());
             ps.setInt(2, o.getNumberOfGuests());
             ps.setInt(3, o.getConfirmationCode());
             
@@ -69,20 +65,23 @@ public class OrderRepository {
             ps.setString(6, o.getPhone());
             ps.setString(7, o.getEmail());
             ps.setString(8, o.getCustomerName());
+            
+            // entered_waitlist
+            ps.setBoolean(9, "WAITING".equals(o.getStatus()));
 
             int affectedRows = ps.executeUpdate();
             if (affectedRows > 0) {
                 ResultSet rs = ps.getGeneratedKeys();
-                if (rs.next()) return rs.getInt(1);
+                if (rs.next()) return rs.getInt(1); 
             }
         } catch (SQLException e) {
+            System.err.println("SQL ERROR: " + e.getMessage()); 
             e.printStackTrace();
         } finally {
             if (pConn != null) pool.releaseConnection(pConn);
         }
         return -1;
     }
-
     /**
      * Checks if a confirmation code already exists in the database.
      * Used to ensure the random code generator creates a unique code.
@@ -306,13 +305,19 @@ public class OrderRepository {
      * @return true if the update was successful.
      */
     public boolean updateOrderStatus(int orderNumber, String newStatus) {
-        String sql = "UPDATE bistro.`order` SET status = ? WHERE order_number = ?";
+        // Logic: Keep entered_waitlist TRUE if it was already TRUE, or set to TRUE if new status is WAITING
+        String sql = "UPDATE bistro.`order` SET status = ?, entered_waitlist = (entered_waitlist OR ?) WHERE order_number = ?";
         PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();
             PreparedStatement ps = pConn.getConnection().prepareStatement(sql);
+            
             ps.setString(1, newStatus);
-            ps.setInt(2, orderNumber);
+            
+            boolean isMovingToWaitlist = "WAITING".equals(newStatus);
+            ps.setBoolean(2, isMovingToWaitlist);
+            
+            ps.setInt(3, orderNumber);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -379,16 +384,13 @@ public class OrderRepository {
      * @return true if payment recorded successfully.
      */
     public boolean processPayment(int orderId, double finalPrice) {
-        // Also need to free the table in the tables table
-        // First get the table ID
         Order order = getOrderById(orderId);
         if (order == null) {
                 return false;
         }
         Integer tableId = order.getAssignedTableId();
-        //COMPLETED
+        
         String sqlOrder = "UPDATE bistro.`order` SET total_price = ?, status = 'COMPLETED', assigned_table_id = NULL, actual_leave_time = NOW() WHERE order_number = ?";
-        //AVAILABLE     
         String sqlTable = "UPDATE `tables` SET status = 'AVAILABLE' WHERE table_id = ?";
 
         PooledConnection pConn = null;
@@ -396,8 +398,7 @@ public class OrderRepository {
             pConn = pool.getConnection();
             Connection conn = pConn.getConnection();
             
-            
-            //Update Order
+            // Update Order
             PreparedStatement psOrder = conn.prepareStatement(sqlOrder);
             psOrder.setDouble(1, finalPrice);
             psOrder.setInt(2, orderId);
@@ -427,7 +428,6 @@ public class OrderRepository {
      * @return true if a table is free, false otherwise.
      */
     public boolean isTableAvailableNow(int requiredCapacity) {
-        // Logic: Count total tables of size X minus occupied tables of size X
         String sqlTotal = "SELECT COUNT(*) FROM `tables` WHERE capacity >= ?";
         String sqlOccupied = "SELECT COUNT(*) FROM `tables` WHERE capacity >= ? AND status = 'OCCUPIED'";
         
@@ -445,7 +445,7 @@ public class OrderRepository {
             int total = 0;
             if (rs1.next()) total = rs1.getInt(1);
 
-            //Get Occupied Tables matching capacity
+            // Get Occupied Tables matching capacity
             PreparedStatement ps2 = conn.prepareStatement(sqlOccupied);
             ps2.setInt(1, requiredCapacity);
             ResultSet rs2 = ps2.executeQuery();
@@ -815,99 +815,163 @@ public class OrderRepository {
     }
 
     /**
-     * Generates data for the Monthly Performance Report.
-     * Compares "Late/Cancelled" vs "Completed/On-Time" orders.
+     * Generates data for the Monthly Performance Report based on specific client requirements.
+     * Metrics included:
+     * 1. Avg Arrival Lateness (Min): (Actual Arrival - Order Time)
+     * 2. Avg Stay Duration (Min): (Actual Leave - Actual Arrival)
+     * 3. Avg Departure Delay (Min): Time spent beyond the allocated 120 minutes.
+     * 4. Late Arrivals Count: Count of orders arriving > 15 minutes late.
+     * 5. General status: Total Completed, Waitlist entries.
      *
      * @param month The month to analyze.
      * @param year The year to analyze.
-     * @return A map where Key is the category and Value is the count.
+     * @return A map where Key is the metric name (String) and Value is the data (Integer).
      */
     public Map<String, Integer> getPerformanceReportData(int month, int year) {
         Map<String, Integer> data = new HashMap<>();
         
-        String sqlCompleted = "SELECT COUNT(*) FROM bistro.`order` " +
-                              "WHERE status = 'COMPLETED' AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
-
-        String sqlNoShow = "SELECT COUNT(*) FROM bistro.`order` " +
-                           "WHERE status = 'NO_SHOW' AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
-
-        String sqlCancelled = "SELECT COUNT(*) FROM bistro.`order` " +
-                              "WHERE status = 'CANCELLED' AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
-
+        Connection conn = null;
         PooledConnection pConn = null;
+
+        // --- SQL QUERIES ---
+
+        // 1. Avg Arrival Lateness (Min): (actual_arrival_time - order_date)
+        // Calculated ONLY for those who arrived late (actual > order)
+        String sqlAvgArrivalLateness = "SELECT AVG(TIMESTAMPDIFF(MINUTE, order_date, actual_arrival_time)) " +
+                                       "FROM bistro.`order` " +
+                                       "WHERE (status = 'COMPLETED' OR status = 'SEATED') " +
+                                       "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
+                                       "AND actual_arrival_time > order_date";
+
+        // 2. Avg Stay Duration (Min): (actual_leave_time - actual_arrival_time)
+        String sqlAvgStayDuration = "SELECT AVG(TIMESTAMPDIFF(MINUTE, actual_arrival_time, actual_leave_time)) " +
+                                    "FROM bistro.`order` " +
+                                    "WHERE status = 'COMPLETED' " +
+                                    "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
+                                    "AND actual_leave_time IS NOT NULL";
+
+        // 3. Avg Departure Delay (Min): Time beyond 120 minutes
+        // Logic: (actual_leave_time - (actual_arrival_time + 120 minutes))
+        // Only considers those who stayed longer than 120 minutes
+        String sqlAvgDepartureDelay = "SELECT AVG(TIMESTAMPDIFF(MINUTE, DATE_ADD(actual_arrival_time, INTERVAL 120 MINUTE), actual_leave_time)) " +
+                                      "FROM bistro.`order` " +
+                                      "WHERE status = 'COMPLETED' " +
+                                      "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
+                                      "AND TIMESTAMPDIFF(MINUTE, actual_arrival_time, actual_leave_time) > 120";
+
+        // 4. Late Arrivals Count: Count where arrival was > 15 minutes late
+        String sqlLateArrivalsCount = "SELECT COUNT(*) FROM bistro.`order` " +
+                                      "WHERE (status = 'COMPLETED' OR status = 'SEATED') " +
+                                      "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
+                                      "AND TIMESTAMPDIFF(MINUTE, order_date, actual_arrival_time) > 15";
+
+        // 5. Basic Counts (Waitlist & Completed)
+        String sqlCompleted = "SELECT COUNT(*) FROM bistro.`order` WHERE status = 'COMPLETED' AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
+        String sqlWaitlist  = "SELECT COUNT(*) FROM bistro.`order` WHERE entered_waitlist = 1 AND MONTH(order_date) = ? AND YEAR(order_date) = ?";
+
         try {
             pConn = pool.getConnection();
-            Connection conn = pConn.getConnection(); 
+            conn = pConn.getConnection();
 
-            
-            PreparedStatement ps1 = conn.prepareStatement(sqlCompleted);
-            ps1.setInt(1, month);
-            ps1.setInt(2, year);
-            ResultSet rs1 = ps1.executeQuery();
-            if (rs1.next()) data.put("Completed Visits", rs1.getInt(1));
+            // Execute Averages
+            executeAvgQuery(conn, sqlAvgArrivalLateness, month, year, "Avg Arrival Lateness (Min)", data);
+            executeAvgQuery(conn, sqlAvgStayDuration, month, year, "Avg Stay Duration (Min)", data);
+            executeAvgQuery(conn, sqlAvgDepartureDelay, month, year, "Avg Departure Delay (Min)", data);
 
-            PreparedStatement ps2 = conn.prepareStatement(sqlNoShow);
-            ps2.setInt(1, month);
-            ps2.setInt(2, year);
-            ResultSet rs2 = ps2.executeQuery();
-            if (rs2.next()) data.put("No-Shows (>15 min late)", rs2.getInt(1));
-            
-            PreparedStatement ps3 = conn.prepareStatement(sqlCancelled);
-            ps3.setInt(1, month);
-            ps3.setInt(2, year);
-            ResultSet rs3 = ps3.executeQuery();
-            if (rs3.next()) data.put("Voluntary Cancellations", rs3.getInt(1));
-
-            String sqlAvgDelay = "SELECT AVG(TIMESTAMPDIFF(MINUTE, order_date, actual_arrival_time)) " +
-                                 "FROM bistro.`order` WHERE status = 'COMPLETED' " +
-                                 "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
-                                 "AND actual_arrival_time > order_date";
-                                 
-            PreparedStatement ps4 = conn.prepareStatement(sqlAvgDelay);
-            ps4.setInt(1, month);
-            ps4.setInt(2, year);
-            ResultSet rs4 = ps4.executeQuery();
-            if (rs4.next()) {
-                 data.put("Avg Delay (min)", (int) rs4.getDouble(1)); 
-            }
+            // Execute Counts
+            executeCountQuery(conn, sqlLateArrivalsCount, month, year, "Late Arrivals Count", data);
+            executeCountQuery(conn, sqlCompleted, month, year, "Total Completed Visits", data);
+            executeCountQuery(conn, sqlWaitlist, month, year, "Total Waitlist Entries", data);
 
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
             if (pConn != null) pool.releaseConnection(pConn);
         }
+        
         return data;
     }
 
+    // Helper for Average Queries
+    private void executeAvgQuery(Connection conn, String sql, int month, int year, String key, Map<String, Integer> data) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    double val = rs.getDouble(1);
+                    data.put(key, (int) val); 
+                } else {
+                    data.put(key, 0);
+                }
+            }
+        }
+    }
+
+    // Helper for Count Queries
+    private void executeCountQuery(Connection conn, String sql, int month, int year, String key, Map<String, Integer> data) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    data.put(key, rs.getInt(1));
+                }
+            }
+        }
+    }
     /**
-     * Generates data for the Subscription/Visits Report.
-     * Counts total orders per day for the specified month.
+     * Generates data for the Subscription Report (Subscribers only).
+     * Collects two types of data:
+     * 1. Total Orders by subscribers per day.
+     * 2. Total Waitlist entries by subscribers per day.
      *
      * @param month The month.
      * @param year The year.
-     * @return A map where Key is the Day of Month (as String) and Value is the order count.
+     * @return A map where Key distinguishes the day and type (e.g. "5" for orders, "W-5" for waitlist).
      */
     public Map<String, Integer> getSubscriptionReportData(int month, int year) {
         Map<String, Integer> data = new HashMap<>();
         
-        String sql = "SELECT DAY(order_date) as day, COUNT(*) as count " +
-                     "FROM bistro.`order` " +
-                     "WHERE MONTH(order_date) = ? AND YEAR(order_date) = ? " +
-                     "GROUP BY DAY(order_date) ORDER BY day ASC";
-                     
+        // 1. Count Subscriber Orders per day
+        String sqlOrders = "SELECT DAY(order_date) as day, COUNT(*) as count FROM bistro.`order` " +
+                           "WHERE subscriber_id IS NOT NULL " + 
+                           "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
+                           "GROUP BY DAY(order_date)";
+
+        // 2. Count Subscriber Waitlist entries per day
+        String sqlWaitlist = "SELECT DAY(order_date) as day, COUNT(*) as count FROM bistro.`order` " +
+                             "WHERE subscriber_id IS NOT NULL " + 
+                             "AND entered_waitlist = 1 " +        
+                             "AND MONTH(order_date) = ? AND YEAR(order_date) = ? " +
+                             "GROUP BY DAY(order_date)";
+
         PooledConnection pConn = null;
         try {
             pConn = pool.getConnection();
             if (pConn == null) return data;
+            Connection conn = pConn.getConnection();
 
-            PreparedStatement ps = pConn.getConnection().prepareStatement(sql);
-            ps.setInt(1, month);
-            ps.setInt(2, year);
-            ResultSet rs = ps.executeQuery();
-            
-            while (rs.next()) {
-                data.put(String.valueOf(rs.getInt("day")), rs.getInt("count"));
+            // Execute Orders Query
+            PreparedStatement psOrders = conn.prepareStatement(sqlOrders);
+            psOrders.setInt(1, month);
+            psOrders.setInt(2, year);
+            ResultSet rsOrders = psOrders.executeQuery();
+            while (rsOrders.next()) {
+                // Key is just the day number (e.g., "1", "2")
+                data.put(String.valueOf(rsOrders.getInt("day")), rsOrders.getInt("count"));
             }
+
+            // Execute Waitlist Query
+            PreparedStatement psWaitlist = conn.prepareStatement(sqlWaitlist);
+            psWaitlist.setInt(1, month);
+            psWaitlist.setInt(2, year);
+            ResultSet rsWaitlist = psWaitlist.executeQuery();
+            while (rsWaitlist.next()) {
+                // Key is prefixed with W- (e.g., "W-1", "W-2") to distinguish from orders
+                data.put("W-" + rsWaitlist.getInt("day"), rsWaitlist.getInt("count"));
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
@@ -995,7 +1059,10 @@ public class OrderRepository {
      */
     public boolean hasActiveOrder(String phone, String email) {
         String sql = "SELECT order_number FROM bistro.`order` " +
-                     "WHERE (phone = ? OR email = ?) " +
+                     "WHERE ( " +
+                     "  (? IS NOT NULL AND ? != '' AND phone = ?) " +
+                     "  OR (? IS NOT NULL AND ? != '' AND email = ?) " +
+                     ") " +
                      "AND status IN ('SEATED', 'WAITING', 'PENDING', 'NOTIFIED') " +
                      "AND DATE(order_date) = CURDATE()";
         
@@ -1003,12 +1070,17 @@ public class OrderRepository {
         try {
             pConn = pool.getConnection();
             PreparedStatement ps = pConn.getConnection().prepareStatement(sql);
+            
             ps.setString(1, phone);
-            ps.setString(2, email);
+            ps.setString(2, phone);
+            ps.setString(3, phone);
+            
+            ps.setString(4, email);
+            ps.setString(5, email);
+            ps.setString(6, email);
             
             ResultSet rs = ps.executeQuery();
-            // If we found a row, it means they are already in the system
-            return rs.next(); 
+            return rs.next(); // מחזיר true רק אם נמצאה התאמה אמיתית
             
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1016,5 +1088,40 @@ public class OrderRepository {
         } finally {
             if (pConn != null) pool.releaseConnection(pConn);
         }
+    }
+    /**
+     * Fetches active orders for a specific member scheduled for today.
+     * Statuses included: 
+     * - PENDING (Future reservation for today)
+     * - WAITING (Currently in waitlist)
+     * - NOTIFIED (Table ready, waiting for arrival)
+     * * @param memberId The ID of the subscriber.
+     * @return ArrayList of relevant orders.
+     */
+    public ArrayList<Order> getRelevantOrdersForToday(int memberId) {
+        ArrayList<Order> list = new ArrayList<>();
+        
+      
+        String sql = "SELECT * FROM bistro.`order` " +
+                     "WHERE subscriber_id = ? " +
+                     "AND DATE(order_date) = CURDATE() " +
+                     "AND status IN ('PENDING', 'WAITING', 'NOTIFIED')";
+
+        PooledConnection pConn = null;
+        try {
+            pConn = pool.getConnection();
+            PreparedStatement ps = pConn.getConnection().prepareStatement(sql);
+            ps.setInt(1, memberId);
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                list.add(mapRowToOrder(rs)); 
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (pConn != null) pool.releaseConnection(pConn);
+        }
+        return list;
     }
 }
