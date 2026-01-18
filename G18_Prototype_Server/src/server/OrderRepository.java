@@ -495,8 +495,8 @@ public class OrderRepository {
     /**
      * Cancels orders where the customer is late OR waiting too long.
      * * Logic:
-     * 1. WAITING customers -> Status becomes 'CANCELLED' (did not get a table).
-     * 2. PENDING/NOTIFIED customers -> Status becomes 'NO_SHOW' (did not arrive).
+     * 1. WAITING customers to Status becomes 'CANCELLED' (did not get a table).
+     * 2. PENDING/NOTIFIED customers to Status becomes 'NO_SHOW' (did not arrive).
      * 3. Frees any tables that were assigned to NO_SHOW customers.
      *
      * @param minutesThreshold Time allowed before cancellation (e.g., 15 mins).
@@ -844,7 +844,7 @@ public class OrderRepository {
      * 1. Avg Arrival Lateness (Min): (Actual Arrival - Order Time)
      * 2. Avg Stay Duration (Min): (Actual Leave - Actual Arrival)
      * 3. Avg Departure Delay (Min): Time spent beyond the allocated 120 minutes.
-     * 4. Late Arrivals Count: Count of orders arriving > 15 minutes late.
+     * 4. Late Arrivals Count: Count of orders arriving more than 15 minutes late.
      * 5. General status: Total Completed, Waitlist entries.
      *
      * @param month The month to analyze.

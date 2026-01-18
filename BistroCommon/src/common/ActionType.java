@@ -165,7 +165,7 @@ public enum ActionType {
     GET_PERFORMANCE_REPORT,  
     
     /**
-     * Generates the Orders & Activity Report for a specific month.
+     * G* Generates the Orders and Activity Report for a specific month.
      */
     GET_SUBSCRIPTION_REPORT,
     

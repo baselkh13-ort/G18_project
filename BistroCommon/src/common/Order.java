@@ -87,7 +87,7 @@ public class Order implements Serializable {
 	 * @param numberOfGuests Amount of guests.
 	 * @param email          Contact email.
 	 * @param phone          Contact phone number.
-	 * @param customerName   Name of the customer.
+	 * @param CustomerName   Name of the customer.
 	 */
 	public Order(Timestamp orderDate, int numberOfGuests, String CustomerName, String phone, String email) {
 		this(0, orderDate, numberOfGuests, 0, 0, new Timestamp(System.currentTimeMillis()));

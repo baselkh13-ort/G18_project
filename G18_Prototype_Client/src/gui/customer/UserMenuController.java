@@ -112,7 +112,6 @@ public class UserMenuController extends AbstractBistroController implements Init
 	/**
 	 * Handles the "Book a Table" action.
 	 * <p>
-	 * Sets the global screen mode to {@link ScreenMode#CREATE} and navigates to the
 	 * Order Creation screen.
 	 * </p>
 	 *
@@ -142,7 +141,6 @@ public class UserMenuController extends AbstractBistroController implements Init
 	/**
 	 * Handles the "Cancel Order" action.
 	 * <p>
-	 * Sets the global screen mode to {@link ScreenMode#CANCEL} and navigates to the
 	 * "Insert Order Number" screen.
 	 * </p>
 	 *
@@ -243,8 +241,7 @@ public class UserMenuController extends AbstractBistroController implements Init
 		try {
 			if (ChatClient.user != null) {
 				BistroMessage msg = new BistroMessage(ActionType.GET_USER_HISTORY, ChatClient.user.getUserId());
-																																																			// שלך
-				ClientUI.chat.accept(msg);
+																																																			
 			}
 
 			((Node) event.getSource()).getScene().getWindow().hide();
